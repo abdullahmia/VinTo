@@ -51,7 +51,7 @@
       },
       {
         "command": "personal-todo-list.addTodo",
-        "title": "Add Todo",
+        "title": "VanTo: Add Todo",
         "icon": "$(add)"
       },
       {
@@ -71,22 +71,22 @@
       },
       {
         "command": "personal-todo-list.changeViewMode",
-        "title": "Change View",
+        "title": "VanTo: Change View",
         "icon": "$(list-flat)"
       },
       {
         "command": "personal-todo-list.filterTodos",
-        "title": "Filter",
+        "title": "VanTo: Filter",
         "icon": "$(filter)"
       },
       {
         "command": "personal-todo-list.searchTodos",
-        "title": "Search",
+        "title": "VanTo: Search Todos",
         "icon": "$(search)"
       },
       {
         "command": "personal-todo-list.clearSearch",
-        "title": "Clear Search",
+        "title": "VanTo: Clear Search",
         "icon": "$(close)"
       },
       {
@@ -111,17 +111,17 @@
       },
       {
         "command": "personal-todo-list.setupProfile",
-        "title": "Setup/Edit Profile",
+        "title": "VanTo: Setup/Edit Profile",
         "icon": "$(account)"
       },
       {
         "command": "personal-todo-list.viewProfile",
-        "title": "View Profile",
+        "title": "VanTo: View Profile",
         "icon": "$(person)"
       },
       {
         "command": "personal-todo-list.showProfileOverview",
-        "title": "Show Profile Overview",
+        "title": "VanTo: Show Profile Overview",
         "icon": "$(graph)"
       }
     ],

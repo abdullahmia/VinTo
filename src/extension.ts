@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 			commands.setupProfile(context.extensionUri, profileService);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.viewProfile', () => {
-			commands.viewProfile(profileService);
+			commands.viewProfile(context.extensionUri, profileService, storage);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.showProfileOverview', () => {
 			commands.showProfileOverview(context.extensionUri, profileService, storage);

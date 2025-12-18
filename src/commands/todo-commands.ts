@@ -153,22 +153,13 @@ export async function setupProfile(extensionUri: vscode.Uri, profileService: imp
 	ProfileSetupPanel.createOrShow(extensionUri, profileService, existingProfile);
 }
 
-export async function viewProfile(profileService: import('@/services').UserProfileService) {
-	const profile = profileService.getProfile();
-	
-	if (!profile) {
-		vscode.window.showInformationMessage('No profile found. Please setup your profile first.');
-		return;
-	}
-
-	const message = `**Name:** ${profile.name}\n**Email:** ${profile.email}${profile.githubUsername ? `\n**GitHub:** ${profile.githubUsername}` : ''}`;
-	
-	vscode.window.showInformationMessage(message, 'Edit Profile').then(selection => {
-		if (selection === 'Edit Profile') {
-			const { ProfileSetupPanel } = require('../webviews');
-			ProfileSetupPanel.createOrShow(vscode.Uri.file(''), profileService, profile);
-		}
-	});
+export async function viewProfile(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	todoStorage: import('@/services').TodoStorageService
+) {
+	// Redirect to profile overview
+	await showProfileOverview(extensionUri, profileService, todoStorage);
 }
 
 export async function showProfileOverview(
