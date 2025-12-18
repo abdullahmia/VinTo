@@ -1,6 +1,6 @@
 {
   "name": "personal-todo-list",
-  "displayName": "Personal Todo List",
+  "displayName": "VinTo",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
   "version": "0.0.1",
   "icon": "assets/logo.png",
@@ -30,7 +30,7 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Personal Todo List",
+      "title": "VinTo",
       "properties": {
         "personal-todo-list.showPendingTasksAlert": {
           "type": "boolean",
@@ -43,7 +43,7 @@
       "activitybar": [
         {
           "id": "personal-todo-list-container",
-          "title": "Todo List",
+          "title": "VinTo",
           "icon": "assets/icon.svg"
         }
       ]
@@ -64,7 +64,7 @@
       },
       {
         "command": "personal-todo-list.addTodo",
-        "title": "VanTo: Add Todo",
+        "title": "VinTo: Add Todo",
         "icon": "$(add)"
       },
       {
@@ -84,22 +84,22 @@
       },
       {
         "command": "personal-todo-list.changeViewMode",
-        "title": "VanTo: Change View",
+        "title": "VinTo: Change View",
         "icon": "$(list-flat)"
       },
       {
         "command": "personal-todo-list.filterTodos",
-        "title": "VanTo: Filter",
+        "title": "VinTo: Filter",
         "icon": "$(filter)"
       },
       {
         "command": "personal-todo-list.searchTodos",
-        "title": "VanTo: Search Todos",
+        "title": "VinTo: Search Todos",
         "icon": "$(search)"
       },
       {
         "command": "personal-todo-list.clearSearch",
-        "title": "VanTo: Clear Search",
+        "title": "VinTo: Clear Search",
         "icon": "$(close)"
       },
       {
@@ -124,17 +124,17 @@
       },
       {
         "command": "personal-todo-list.setupProfile",
-        "title": "VanTo: Setup/Edit Profile",
+        "title": "VinTo: Setup/Edit Profile",
         "icon": "$(account)"
       },
       {
         "command": "personal-todo-list.viewProfile",
-        "title": "VanTo: View Profile",
+        "title": "VinTo: View Profile",
         "icon": "$(person)"
       },
       {
         "command": "personal-todo-list.showProfileOverview",
-        "title": "VanTo: Show Profile Overview",
+        "title": "VinTo: Show Profile Overview",
         "icon": "$(graph)"
       }
     ],

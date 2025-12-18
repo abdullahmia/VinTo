@@ -1,8 +1,8 @@
-# VanTo
+# VinTo
 
 > **Simplify your code, clarify your day.**
 
-A lightweight, sidebar-integrated todo list for VS Code. VanTo helps you stay in the flow by keeping your personal tasks exactly where your code lives. No context switching, just progress.
+A lightweight, sidebar-integrated todo list for VS Code. VinTo helps you stay in the flow by keeping your personal tasks exactly where your code lives. No context switching, just progress.
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/abdullahmia.personal-todo-list?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=abdullahmia.personal-todo-list)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/abdullahmia.personal-todo-list?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=abdullahmia.personal-todo-list)
@@ -50,12 +50,12 @@ A lightweight, sidebar-integrated todo list for VS Code. VanTo helps you stay in
 
 1. Open VS Code
 2. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
-3. Search for "VanTo"
+3. Search for "VinTo"
 4. Click Install
 
 ### First-Time Setup
 
-When you first activate VanTo, you'll be prompted to create your profile:
+When you first activate VinTo, you'll be prompted to create your profile:
 - Enter your name and email
 - Optionally add your GitHub username
 - Start adding todos!
@@ -66,7 +66,7 @@ When you first activate VanTo, you'll be prompted to create your profile:
 
 ### Adding a Todo
 
-1. Click the **+** icon in the VanTo sidebar
+1. Click the **+** icon in the VinTo sidebar
 2. Fill in the details:
    - **Title** (required)
    - **Priority** (High, Medium, Low)
@@ -109,7 +109,7 @@ Run the command **"Show Profile Overview"** to see:
 
 ## ⚙️ Settings
 
-VanTo can be customized through VS Code settings:
+VinTo can be customized through VS Code settings:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
@@ -141,14 +141,14 @@ Access these commands via Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
 
 | Command | Description |
 |---------|-------------|
-| `VanTo: Add Todo` | Create a new todo |
-| `VanTo: Search Todos` | Search your tasks |
-| `VanTo: Clear Search` | Reset search filter |
-| `VanTo: Change View` | Switch view mode |
-| `VanTo: Filter` | Apply filters |
-| `VanTo: Setup/Edit Profile` | Update your profile |
-| `VanTo: View Profile` | Quick view of profile info |
-| `VanTo: Show Profile Overview` | Open statistics dashboard |
+| `VinTo: Add Todo` | Create a new todo |
+| `VinTo: Search Todos` | Search your tasks |
+| `VinTo: Clear Search` | Reset search filter |
+| `VinTo: Change View` | Switch view mode |
+| `VinTo: Filter` | Apply filters |
+| `VinTo: Setup/Edit Profile` | Update your profile |
+| `VinTo: View Profile` | Quick view of profile info |
+| `VinTo: Show Profile Overview` | Open statistics dashboard |
 
 ---
 
@@ -158,7 +158,7 @@ We welcome contributions! Here's how you can help:
 
 ### Commit Convention
 
-VanTo uses [Conventional Commits](https://www.conventionalcommits.org/). Please follow this format:
+VinTo uses [Conventional Commits](https://www.conventionalcommits.org/). Please follow this format:
 
 ```
 <type>(<scope>): <subject>
@@ -199,7 +199,7 @@ This project is licensed under the MIT License.
 
 ## 🌟 Show Your Support
 
-If VanTo helps you stay productive, please:
+If VinTo helps you stay productive, please:
 - ⭐ Star the repository
 - 📝 Leave a review on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=abdullahmia.personal-todo-list)
 - 🐦 Share with your fellow developers
