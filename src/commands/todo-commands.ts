@@ -2,8 +2,8 @@ import { ITodo, TodoPriority } from '@/models';
 import { TodoItem, TodoTreeProvider } from '@/providers';
 import { TodoStorageService } from '@/services';
 import { generateUUID } from '@/utils';
-import { TodoDetailPanel, TodoPanel } from '@/webviews';
 import * as vscode from 'vscode';
+import { TodoDetailPanel, TodoPanel } from '../webviews';
 
 export async function addTodo(extensionUri: vscode.Uri, storage: TodoStorageService, provider: TodoTreeProvider) {
 	TodoPanel.createOrShow(extensionUri, storage, provider);
@@ -116,8 +116,10 @@ export async function searchTodos(provider: TodoTreeProvider, treeView: vscode.T
 		provider.setSearchQuery(query);
 		if (query) {
 			treeView.message = `Results for "${query}"`;
+			vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', true);
 		} else {
 			treeView.message = undefined; 
+			vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', false);
 		}
 	}
 }
@@ -125,6 +127,7 @@ export async function searchTodos(provider: TodoTreeProvider, treeView: vscode.T
 export async function clearSearch(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
 	provider.setSearchQuery('');
 	treeView.message = undefined; 
+	vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', false);
 }
 
 export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {

@@ -105,27 +105,27 @@
         {
           "command": "personal-todo-list.addTodo",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "personal-todo-list.changeViewMode",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "personal-todo-list.filterTodos",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "personal-todo-list.searchTodos",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@4"
         },
         {
           "command": "personal-todo-list.clearSearch",
-          "when": "view == personal-todo-list.todoView && viewItem == searchActive",
-          "group": "navigation"
+          "when": "view == personal-todo-list.todoView && personal-todo-list.isSearching",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
