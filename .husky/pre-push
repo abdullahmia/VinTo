@@ -1,0 +1,52 @@
+#!/bin/sh
+exec < /dev/tty
+
+echo "🦋 Checking for changesets..."
+
+# Check if there are any changesets present
+# If 'changeset status' reports that no packages would be released, we assume a changeset is missing.
+OUTPUT=$(npx changeset status 2>&1)
+
+# We check for "would release NO packages" in the output for all 3 categories (major, minor, patch)
+# If the output *only* contains "would release NO packages" (for all levels), then we need one.
+# A simpler check: if it DOES NOT contain "would release [package-name]", it's empty.
+# 'changeset status' output usually lists the package name if there is a detected change.
+
+if ! echo "$OUTPUT" | grep -q "would release"; then
+    # Double check: "would release NO packages" contains "would release".
+    # Correct logic: If the output implies *actual* release content.
+    # The output format is:
+    # "Running release would release NO packages as a patch"
+    # "Running release would release personal-todo-list as a patch"
+    
+    # So we check if it says "release NO packages" 3 times (for patch, minor, major).
+    PATCH_NO=$(echo "$OUTPUT" | grep "would release NO packages as a patch")
+    MINOR_NO=$(echo "$OUTPUT" | grep "would release NO packages as a minor")
+    MAJOR_NO=$(echo "$OUTPUT" | grep "would release NO packages as a major")
+    
+    if [ -n "$PATCH_NO" ] && [ -n "$MINOR_NO" ] && [ -n "$MAJOR_NO" ]; then
+        echo "⚠️  No changeset found. Launching changeset wizard..."
+        npx changeset
+        
+        # Check if a new changeset file was created
+        # We look for untracked or staged files in .changeset/
+        if git status --porcelain | grep ".changeset/.*.md"; then
+            echo ""
+            echo "✅ Changeset created!"
+            echo "🛑 Push aborted to allow you to commit the changeset."
+            echo "👉 Please run:"
+            echo "   git add .changeset"
+            echo "   git commit -m 'chore: add changeset'"
+            echo "   git push"
+            exit 1
+        else
+            echo "❌ No changeset created."
+            echo "Do you want to push WITHOUT a changeset? (y/n)"
+            read answer
+            if [ "$answer" != "y" ]; then
+                echo "Push aborted."
+                exit 1
+            fi
+        fi
+    fi
+fi
