@@ -146,3 +146,36 @@ export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.T
 		}
 	}
 }
+
+export async function setupProfile(extensionUri: vscode.Uri, profileService: import('@/services').UserProfileService) {
+	const existingProfile = profileService.getProfile();
+	const { ProfileSetupPanel } = await import('../webviews');
+	ProfileSetupPanel.createOrShow(extensionUri, profileService, existingProfile);
+}
+
+export async function viewProfile(profileService: import('@/services').UserProfileService) {
+	const profile = profileService.getProfile();
+	
+	if (!profile) {
+		vscode.window.showInformationMessage('No profile found. Please setup your profile first.');
+		return;
+	}
+
+	const message = `**Name:** ${profile.name}\n**Email:** ${profile.email}${profile.githubUsername ? `\n**GitHub:** ${profile.githubUsername}` : ''}`;
+	
+	vscode.window.showInformationMessage(message, 'Edit Profile').then(selection => {
+		if (selection === 'Edit Profile') {
+			const { ProfileSetupPanel } = require('../webviews');
+			ProfileSetupPanel.createOrShow(vscode.Uri.file(''), profileService, profile);
+		}
+	});
+}
+
+export async function showProfileOverview(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	todoStorage: import('@/services').TodoStorageService
+) {
+	const { ProfileOverviewPanel } = await import('../webviews');
+	ProfileOverviewPanel.createOrShow(extensionUri, profileService, todoStorage);
+}

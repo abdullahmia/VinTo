@@ -5,12 +5,13 @@ import * as vscode from 'vscode';
 import * as commands from './commands';
 import { ITodo, TodoPriority } from './models';
 import { TodoItem, TodoTreeProvider } from './providers';
-import { TodoStorageService } from './services';
+import { TodoStorageService, UserProfileService } from './services';
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, your extension "personal-todo-list" is now active!');
 
 	const storage = new TodoStorageService(context);
+	const profileService = new UserProfileService(context);
 	const todoProvider = new TodoTreeProvider(storage);
 	
 	const treeView = vscode.window.createTreeView('personal-todo-list.todoView', {
@@ -72,6 +73,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.commands.registerCommand('personal-todo-list.clearSearch', () => {
 			commands.clearSearch(todoProvider, treeView);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.setupProfile', () => {
+			commands.setupProfile(context.extensionUri, profileService);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.viewProfile', () => {
+			commands.viewProfile(profileService);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.showProfileOverview', () => {
+			commands.showProfileOverview(context.extensionUri, profileService, storage);
 		})
 	);
 
@@ -103,6 +113,55 @@ export function activate(context: vscode.ExtensionContext) {
 			treeView.reveal(treeView.selection[0] || undefined, { focus: true });
 		})
 	);
+
+	// Check for first-time setup
+	if (!profileService.hasProfile()) {
+		// Show setup panel after a short delay to ensure extension is fully loaded
+		setTimeout(() => {
+			commands.setupProfile(context.extensionUri, profileService);
+		}, 500);
+	}
+
+	// Show pending tasks alert
+	setTimeout(() => {
+		showPendingTasksAlert(storage, treeView);
+	}, 1000);
+}
+
+function showPendingTasksAlert(storage: TodoStorageService, treeView: vscode.TreeView<TodoItem | import('./providers').TodoGroupItem>) {
+	// Check if setting is enabled
+	const config = vscode.workspace.getConfiguration('personal-todo-list');
+	const showAlert = config.get<boolean>('showPendingTasksAlert', true);
+
+	if (!showAlert) {
+		return;
+	}
+
+	// Count pending tasks
+	const todos = storage.getTodos();
+	const pendingCount = todos.filter(t => !t.isCompleted).length;
+
+	if (pendingCount === 0) {
+		return;
+	}
+
+	// Show notification
+	const message = pendingCount === 1 
+		? 'You have 1 pending task' 
+		: `You have ${pendingCount} pending tasks`;
+
+	vscode.window.showInformationMessage(
+		message,
+		'View Todos',
+		'Dismiss',
+		"Don't Show Again"
+	).then(selection => {
+		if (selection === 'View Todos') {
+			treeView.reveal(treeView.selection[0] || undefined, { focus: true });
+		} else if (selection === "Don't Show Again") {
+			config.update('showPendingTasksAlert', false, vscode.ConfigurationTarget.Global);
+		}
+	});
 }
 
 export function deactivate() {}

@@ -16,6 +16,16 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Personal Todo List",
+      "properties": {
+        "personal-todo-list.showPendingTasksAlert": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show alert notification for pending tasks when VS Code opens"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -98,6 +108,21 @@
       {
         "command": "personal-todo-list.duplicateTodo",
         "title": "Duplicate"
+      },
+      {
+        "command": "personal-todo-list.setupProfile",
+        "title": "Setup/Edit Profile",
+        "icon": "$(account)"
+      },
+      {
+        "command": "personal-todo-list.viewProfile",
+        "title": "View Profile",
+        "icon": "$(person)"
+      },
+      {
+        "command": "personal-todo-list.showProfileOverview",
+        "title": "Show Profile Overview",
+        "icon": "$(graph)"
       }
     ],
     "menus": {
@@ -188,9 +213,12 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/module-alias": "^2.0.4",
@@ -201,6 +229,7 @@
     "@vscode/test-electron": "^2.3.2",
     "eslint": "^8.41.0",
     "glob": "^8.1.0",
+    "husky": "^9.1.7",
     "mocha": "^10.2.0",
     "typescript": "^5.1.3"
   },
