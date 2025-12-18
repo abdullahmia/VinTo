@@ -2,7 +2,7 @@
   "name": "personal-todo-list",
   "displayName": "VinTo",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.80.0"
@@ -232,6 +232,7 @@
     ]
   },
   "scripts": {
+    "release": "npx vsce publish",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
@@ -240,6 +241,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
     "@types/glob": "^8.1.0",
@@ -250,6 +252,7 @@
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
     "@vscode/test-electron": "^2.3.2",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^8.41.0",
     "glob": "^8.1.0",
     "husky": "^9.1.7",
