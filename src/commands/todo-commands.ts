@@ -1,28 +1,25 @@
+import { ITodo, TodoPriority } from '@/models';
+import { TodoItem, TodoTreeProvider } from '@/providers';
+import { TodoStorageService } from '@/services';
+import { generateUUID } from '@/utils';
+import { TodoDetailPanel, TodoPanel } from '@/webviews';
 import * as vscode from 'vscode';
-import { Todo, TodoPriority } from './todo';
-import { TodoItem } from './todoItem';
-import { TodoTreeDataProvider } from './todoProvider';
-import { TodoStorage } from './todoStorage';
-import { TodoPanel } from './todoWebview';
 
-export async function addTodo(extensionUri: vscode.Uri, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function addTodo(extensionUri: vscode.Uri, storage: TodoStorageService, provider: TodoTreeProvider) {
 	TodoPanel.createOrShow(extensionUri, storage, provider);
 }
 
-import { TodoDetailPanel } from './todoDetailWebview';
-
-export async function openTodo(extensionUri: vscode.Uri, todo: Todo, storage: TodoStorage, provider: TodoTreeDataProvider) {
-    // vscode.window.showInformationMessage(`Open Todo: ${JSON.stringify(todo)}`);
+export async function openTodo(extensionUri: vscode.Uri, todo: ITodo, storage: TodoStorageService, provider: TodoTreeProvider) {
     TodoDetailPanel.createOrShow(extensionUri, todo, storage, provider);
 }
 
-export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
     TodoPanel.createOrShow(extensionUri, storage, provider, item.todo);
 }
 
-export async function toggleTodo(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function toggleTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	const todo = item.todo;
-	const updatedTodo: Todo = {
+	const updatedTodo: ITodo = {
 		...todo,
 		isCompleted: !todo.isCompleted
 	};
@@ -30,14 +27,14 @@ export async function toggleTodo(item: TodoItem, storage: TodoStorage, provider:
 	provider.refresh();
 }
 
-export async function setPriority(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider, priority: TodoPriority) {
+export async function setPriority(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider, priority: TodoPriority) {
 	if (!item) return;
 	const updated = { ...item.todo, priority };
 	await storage.updateTodo(updated);
 	provider.refresh();
 }
 
-export async function setDueDate(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function setDueDate(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	if (!item) return;
 	const dateString = await vscode.window.showInputBox({
 		prompt: 'Set Due Date (YYYY-MM-DD)',
@@ -63,36 +60,21 @@ export async function setDueDate(item: TodoItem, storage: TodoStorage, provider:
 	}
 }
 
-export async function duplicateTodo(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function duplicateTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	if (!item) return;
 	const original = item.todo;
-	const newTodo: Todo = {
+	const newTodo: ITodo = {
 		...original,
-		id: Crypto.randomUUID(),
+		id: generateUUID(),
 		title: `${original.title} (Copy)`,
 		createdAt: Date.now(),
-		// Keep other properties same
 	};
-	
-	// Create a slightly better way to generate ID if we can, or rely on storage.addTodo if it generates IDs?
-	// Storage.addTodo currently takes a Todo object.
-	// We need to generate ID manually here as per current storage implementation expectation or modify storage.
-	// Looking at previous todoProvider, it was manually generating IDs in seedData, so I assume we generate it.
 	
 	await storage.addTodo(newTodo);
 	provider.refresh();
 }
 
-// Polyfill for crypto.randomUUID
-const Crypto = {
-	randomUUID: () => {
-		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-			return v.toString(16);
-		});
-	}
-};
-export async function deleteTodo(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+export async function deleteTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	const confirm = await vscode.window.showWarningMessage(
 		`Are you sure you want to delete "${item.todo.title}"?`,
 		{ modal: true },
@@ -106,7 +88,7 @@ export async function deleteTodo(item: TodoItem, storage: TodoStorage, provider:
 	}
 }
 
-export async function changeViewMode(provider: TodoTreeDataProvider, treeView: vscode.TreeView<TodoItem | import('./todoGroupItem').TodoGroupItem>) {
+export async function changeViewMode(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
 	const modes = [
 		{ label: 'List View (All Todos)', description: 'Flat list of all todos', mode: 'list' },
 		{ label: 'Group by Priority', description: 'High, Medium, Low', mode: 'priority' },
@@ -124,13 +106,13 @@ export async function changeViewMode(provider: TodoTreeDataProvider, treeView: v
 	}
 }
 
-export async function searchTodos(provider: TodoTreeDataProvider, treeView: vscode.TreeView<TodoItem | import('./todoGroupItem').TodoGroupItem>) {
+export async function searchTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
 	const query = await vscode.window.showInputBox({
 		placeHolder: 'Search todos...',
 		prompt: 'Type to search by title or description'
 	});
 
-	if (query !== undefined) { // Allow empty string to clear
+	if (query !== undefined) { 
 		provider.setSearchQuery(query);
 		if (query) {
 			treeView.message = `Results for "${query}"`;
@@ -140,21 +122,18 @@ export async function searchTodos(provider: TodoTreeDataProvider, treeView: vsco
 	}
 }
 
-export async function clearSearch(provider: TodoTreeDataProvider, treeView: vscode.TreeView<TodoItem | import('./todoGroupItem').TodoGroupItem>) {
+export async function clearSearch(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
 	provider.setSearchQuery('');
 	treeView.message = undefined; 
 }
 
-export async function filterTodos(provider: TodoTreeDataProvider, treeView: vscode.TreeView<TodoItem | import('./todoGroupItem').TodoGroupItem>) {
+export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
 	const options = ['Show All', 'Hide Completed', 'Show Only High Priority'];
 	const selection = await vscode.window.showQuickPick(options, {
 		placeHolder: 'Select Filter'
 	});
 
 	if (selection) {
-		// Ideally we would integrate this with provider.setFilter, but for now let's implement a simple version or reuse existing logic if possible.
-		// Detailed implementation path: Add setVisibilityFilter method to provider.
-		
 		if (selection === 'Show All') {
 			provider.setVisibilityFilter({ savedFilter: 'all' });
 		} else if (selection === 'Hide Completed') {

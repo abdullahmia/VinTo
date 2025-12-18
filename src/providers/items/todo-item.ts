@@ -1,16 +1,14 @@
+import { ITodo, TodoPriority } from '@/models';
 import * as vscode from 'vscode';
-import { Todo, TodoPriority } from './todo';
 
 export class TodoItem extends vscode.TreeItem {
 	constructor(
-		public readonly todo: Todo,
+		public readonly todo: ITodo,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState
 	) {
 		super(todo.title, collapsibleState);
 		
 		this.id = todo.id;
-		this.tooltip = `${todo.title} - ${todo.priority}`;
-		
 		this.tooltip = this.getTooltip();
 		this.description = this.getDescription();
 		
@@ -24,7 +22,7 @@ export class TodoItem extends vscode.TreeItem {
 		
 		// Strikethrough for completed
 		if (todo.isCompleted) {
-			this.resourceUri = vscode.Uri.parse(`todo:${this.label}`); // Hack to trigger decoration if needed, but mainly relying on icon
+			this.resourceUri = vscode.Uri.parse(`todo:${this.label}`);
 		}
 	}
 

@@ -1,28 +1,25 @@
+import { ITodo, TodoPriority } from '@/models';
+import { TodoTreeProvider } from '@/providers';
+import { TodoStorageService } from '@/services';
+import { generateUUID } from '@/utils';
 import * as vscode from 'vscode';
-import { Todo, TodoPriority } from './todo';
-import { TodoTreeDataProvider } from './todoProvider';
-import { TodoStorage } from './todoStorage';
 
 export class TodoPanel {
     public static currentPanel: TodoPanel | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
     private _disposables: vscode.Disposable[] = [];
-    private _todoToEdit?: Todo;
+    private _todoToEdit?: ITodo;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private readonly storage: TodoStorage, private readonly provider: TodoTreeDataProvider, todoToEdit?: Todo) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private readonly storage: TodoStorageService, private readonly provider: TodoTreeProvider, todoToEdit?: ITodo) {
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._todoToEdit = todoToEdit;
 
-        // Set the webview's initial html content
         this._update();
 
-        // Listen for when the panel is disposed
-        // This happens when the user closes the panel or when the panel is closed programmatically
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-        // Handle messages from the webview
         this._panel.webview.onDidReceiveMessage(
             message => {
                 switch (message.command) {
@@ -42,14 +39,11 @@ export class TodoPanel {
         );
     }
 
-    public static createOrShow(extensionUri: vscode.Uri, storage: TodoStorage, provider: TodoTreeDataProvider, todoToEdit?: Todo) {
+    public static createOrShow(extensionUri: vscode.Uri, storage: TodoStorageService, provider: TodoTreeProvider, todoToEdit?: ITodo) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
 
-        // If we already have a panel, show it.
-        // NOTE: If we are switching from Add to Edit or vice versa, we might want to recreate or update.
-        // For simplicity, let's close the old one if it exists or reuse it but update state.
         if (TodoPanel.currentPanel) {
             TodoPanel.currentPanel._todoToEdit = todoToEdit;
             TodoPanel.currentPanel._update();
@@ -59,7 +53,6 @@ export class TodoPanel {
 
         const title = todoToEdit ? `Edit Todo: ${todoToEdit.title}` : 'Add New Todo';
 
-        // Otherwise, create a new panel.
         const panel = vscode.window.createWebviewPanel(
             'todoWebview',
             title,
@@ -94,7 +87,6 @@ export class TodoPanel {
     private async _addTodo(data: any) {
         const { title, description, priority, dueDate, tags } = data;
 
-        // Validation (Double check server-side)
         if (!title) {
             vscode.window.showErrorMessage('Title is required');
             return;
@@ -105,8 +97,8 @@ export class TodoPanel {
             parsedDate = Date.parse(dueDate);
         }
 
-        const newTodo: Todo = {
-            id: this._generateUUID(), 
+        const newTodo: ITodo = {
+            id: generateUUID(), 
             title,
             description,
             priority: priority as TodoPriority,
@@ -138,7 +130,7 @@ export class TodoPanel {
             if (isNaN(parsedDate)) parsedDate = undefined;
         }
 
-        const updatedTodo: Todo = {
+        const updatedTodo: ITodo = {
             ...this._todoToEdit,
             title,
             description,
@@ -153,14 +145,8 @@ export class TodoPanel {
         this.dispose();
     }
 
-    private _generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
-
     private _getHtmlForWebview() {
+        // Reuse existing HTML logic, omitted for brevity but should be fully copied in real scenario. I will assume I need to copy the full HTML.
         const todo = this._todoToEdit;
         const isEdit = !!todo;
         

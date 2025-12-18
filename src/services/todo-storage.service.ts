@@ -1,26 +1,26 @@
+import { ITodo } from '@/models';
 import * as vscode from 'vscode';
-import { Todo } from './todo';
 
-export class TodoStorage {
+export class TodoStorageService {
 	private static readonly KEY = 'personal-todo-list.todos';
 
 	constructor(private context: vscode.ExtensionContext) {}
 
-	getTodos(): Todo[] {
-		return this.context.globalState.get<Todo[]>(TodoStorage.KEY, []);
+	getTodos(): ITodo[] {
+		return this.context.globalState.get<ITodo[]>(TodoStorageService.KEY, []);
 	}
 
-	async saveTodos(todos: Todo[]): Promise<void> {
-		await this.context.globalState.update(TodoStorage.KEY, todos);
+	async saveTodos(todos: ITodo[]): Promise<void> {
+		await this.context.globalState.update(TodoStorageService.KEY, todos);
 	}
 
-	async addTodo(todo: Todo): Promise<void> {
+	async addTodo(todo: ITodo): Promise<void> {
 		const todos = this.getTodos();
 		todos.push(todo);
 		await this.saveTodos(todos);
 	}
 
-	async updateTodo(updatedTodo: Todo): Promise<void> {
+	async updateTodo(updatedTodo: ITodo): Promise<void> {
 		const todos = this.getTodos();
 		const index = todos.findIndex(t => t.id === updatedTodo.id);
 		if (index !== -1) {

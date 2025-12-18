@@ -1,17 +1,17 @@
+import { ITodo } from '@/models';
+import { TodoTreeProvider } from '@/providers';
+import { TodoStorageService } from '@/services';
 import * as vscode from 'vscode';
-import { Todo } from './todo';
-import { TodoTreeDataProvider } from './todoProvider';
-import { TodoStorage } from './todoStorage';
-import { TodoPanel } from './todoWebview';
+import { TodoPanel } from './todo-panel.webview';
 
 export class TodoDetailPanel {
     public static currentPanel: TodoDetailPanel | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
     private _disposables: vscode.Disposable[] = [];
-    private _todo: Todo;
+    private _todo: ITodo;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, todo: Todo, private readonly storage: TodoStorage, private readonly provider: TodoTreeDataProvider) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, todo: ITodo, private readonly storage: TodoStorageService, private readonly provider: TodoTreeProvider) {
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._todo = todo;
@@ -25,11 +25,6 @@ export class TodoDetailPanel {
                 switch (message.command) {
                     case 'edit':
                         TodoPanel.createOrShow(this._extensionUri, this.storage, this.provider, this._todo);
-                         // Optional: Close detail view when opening edit, or keep it open and listen for updates.
-                         // For now, let's keep it open but we might need to refresh it if the edit saves.
-                         // A better UX might be closing this one or refreshing it.
-                         // Let's close it for simplicity to avoid stale data, or better: 
-                         // we can subscribe to provider changes but let's just close it for now.
                         this.dispose(); 
                         return;
                     case 'delete':
@@ -48,14 +43,11 @@ export class TodoDetailPanel {
         );
     }
 
-    public static createOrShow(extensionUri: vscode.Uri, todo: Todo, storage: TodoStorage, provider: TodoTreeDataProvider) {
+    public static createOrShow(extensionUri: vscode.Uri, todo: ITodo, storage: TodoStorageService, provider: TodoTreeProvider) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
 
-        // If we already have a panel, check if it's the same todo?
-        // Actually, mostly we want to replace the content or show a new one. 
-        // For simplicity, let's allow only one detail panel at a time.
         if (TodoDetailPanel.currentPanel) {
             TodoDetailPanel.currentPanel._todo = todo;
             TodoDetailPanel.currentPanel._update();
@@ -136,7 +128,7 @@ export class TodoDetailPanel {
                 'medium': 'var(--vscode-charts-yellow)',
                 'low': 'var(--vscode-charts-green)'
             };
-            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)'); // Ensure lowercase key match
+            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)'); 
 
             // Tags
             let tagsHtml = '';

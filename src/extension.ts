@@ -1,14 +1,17 @@
+import * as moduleAlias from 'module-alias';
+moduleAlias.addAlias('@', __dirname);
+
 import * as vscode from 'vscode';
-import { Todo, TodoPriority } from './todo';
-import { TodoItem } from './todoItem';
-import { TodoTreeDataProvider } from './todoProvider';
-import { TodoStorage } from './todoStorage';
+import * as commands from './commands';
+import { ITodo, TodoPriority } from './models';
+import { TodoItem, TodoTreeProvider } from './providers';
+import { TodoStorageService } from './services';
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, your extension "personal-todo-list" is now active!');
 
-	const storage = new TodoStorage(context);
-	const todoProvider = new TodoTreeDataProvider(storage);
+	const storage = new TodoStorageService(context);
+	const todoProvider = new TodoTreeProvider(storage);
 	
 	const treeView = vscode.window.createTreeView('personal-todo-list.todoView', {
 		treeDataProvider: todoProvider
@@ -17,9 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 	treeView.onDidChangeCheckboxState(e => {
 		for (const [item, state] of e.items) {
 			if (item instanceof TodoItem) {
-				import('./commands').then(({ toggleTodo }) => {
-					toggleTodo(item, storage, todoProvider);
-				});
+				commands.toggleTodo(item, storage, todoProvider);
 			}
 		}
 	});
@@ -29,76 +30,48 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage('Hello World from Personal Todo List!');
 		}),
 		vscode.commands.registerCommand('personal-todo-list.addTodo', () => {
-			import('./commands').then(({ addTodo }) => {
-				addTodo(context.extensionUri, storage, todoProvider);
-			});
+			commands.addTodo(context.extensionUri, storage, todoProvider);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.editTodo', (item: TodoItem) => {
-			import('./commands').then(({ editTodo }) => {
-				editTodo(context.extensionUri, item, storage, todoProvider);
-			});
+			commands.editTodo(context.extensionUri, item, storage, todoProvider);
 		}),
-		vscode.commands.registerCommand('personal-todo-list.openTodo', (todo: Todo) => {
-			import('./commands').then(({ openTodo }) => {
-				openTodo(context.extensionUri, todo, storage, todoProvider);
-			});
+		vscode.commands.registerCommand('personal-todo-list.openTodo', (todo: ITodo) => {
+			commands.openTodo(context.extensionUri, todo, storage, todoProvider);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.toggleTodo', (item: TodoItem) => {
-			import('./commands').then(({ toggleTodo }) => {
-				toggleTodo(item, storage, todoProvider);
-			});
+			commands.toggleTodo(item, storage, todoProvider);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.deleteTodo', (item: TodoItem) => {
-			import('./commands').then(({ deleteTodo }) => {
-				deleteTodo(item, storage, todoProvider);
-			});
+			commands.deleteTodo(item, storage, todoProvider);
 		}),
 
 		vscode.commands.registerCommand('personal-todo-list.setPriorityHigh', (item: TodoItem) => {
-			import('./commands').then(({ setPriority }) => {
-				setPriority(item, storage, todoProvider, TodoPriority.High);
-			});
+			commands.setPriority(item, storage, todoProvider, TodoPriority.High);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.setPriorityMedium', (item: TodoItem) => {
-			import('./commands').then(({ setPriority }) => {
-				setPriority(item, storage, todoProvider, 'Medium' as any);
-			});
+			commands.setPriority(item, storage, todoProvider, TodoPriority.Medium);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.setPriorityLow', (item: TodoItem) => {
-			import('./commands').then(({ setPriority }) => {
-				setPriority(item, storage, todoProvider, 'Low' as any);
-			});
+			commands.setPriority(item, storage, todoProvider, TodoPriority.Low);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.setDueDate', (item: TodoItem) => {
-			import('./commands').then(({ setDueDate }) => {
-				setDueDate(item, storage, todoProvider);
-			});
+			commands.setDueDate(item, storage, todoProvider);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.duplicateTodo', (item: TodoItem) => {
-			import('./commands').then(({ duplicateTodo }) => {
-				duplicateTodo(item, storage, todoProvider);
-			});
+			commands.duplicateTodo(item, storage, todoProvider);
 		}),
 		
 		vscode.commands.registerCommand('personal-todo-list.changeViewMode', () => {
-			import('./commands').then(({ changeViewMode }) => {
-				changeViewMode(todoProvider, treeView);
-			});
+			commands.changeViewMode(todoProvider, treeView);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.filterTodos', () => {
-			import('./commands').then(({ filterTodos }) => {
-				filterTodos(todoProvider, treeView);
-			});
+			commands.filterTodos(todoProvider, treeView);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.searchTodos', () => {
-			import('./commands').then(({ searchTodos }) => {
-				searchTodos(todoProvider, treeView);
-			});
+			commands.searchTodos(todoProvider, treeView);
 		}),
 		vscode.commands.registerCommand('personal-todo-list.clearSearch', () => {
-			import('./commands').then(({ clearSearch }) => {
-				clearSearch(todoProvider, treeView);
-			});
+			commands.clearSearch(todoProvider, treeView);
 		})
 	);
 
@@ -124,7 +97,6 @@ export function activate(context: vscode.ExtensionContext) {
 		updateStatusBar();
 	});
 
-	// Register focus command
 	// Register focus command
 	context.subscriptions.push(
 		vscode.commands.registerCommand('personal-todo-list.focusView', () => {

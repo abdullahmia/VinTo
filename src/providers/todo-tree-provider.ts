@@ -1,11 +1,10 @@
+import { ITodo, TodoPriority, ViewMode } from '@/models';
+import { TodoStorageService } from '@/services';
 import * as vscode from 'vscode';
-import { Todo, TodoPriority } from './todo';
-import { TodoGroupItem } from './todoGroupItem';
-import { TodoItem } from './todoItem';
-import { TodoStorage } from './todoStorage';
-import { ViewMode } from './types';
+import { TodoGroupItem } from './items/todo-group-item';
+import { TodoItem } from './items/todo-item';
 
-export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | TodoGroupItem> {
+export class TodoTreeProvider implements vscode.TreeDataProvider<TodoItem | TodoGroupItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<TodoItem | TodoGroupItem | undefined | null | void> = new vscode.EventEmitter<TodoItem | TodoGroupItem | undefined | null | void>();
 	readonly onDidChangeTreeData: vscode.Event<TodoItem | TodoGroupItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
@@ -13,7 +12,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 	private searchQuery: string = '';
 	private visibilityFilter: 'all' | 'active' | 'high' = 'all';
 
-	constructor(private storage: TodoStorage) {}
+	constructor(private storage: TodoStorageService) {}
 
 	getTreeItem(element: TodoItem | TodoGroupItem): vscode.TreeItem {
 		return element;
@@ -22,20 +21,16 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 	getChildren(element?: TodoItem | TodoGroupItem): Thenable<(TodoItem | TodoGroupItem)[]> {
 		const todos = this.storage.getTodos();
 		
-		// If element is a group, return its children
 		if (element instanceof TodoGroupItem) {
 			return Promise.resolve(this.getGroupChildren(element, todos));
 		}
 		
-		// If element is a TodoItem, it has no children
 		if (element instanceof TodoItem) {
 			return Promise.resolve([]);
 		}
 
-		// Root - apply search filter first
 		let filteredTodos = todos;
 		
-		// Apply search
 		if (this.searchQuery) {
 			const query = this.searchQuery.toLowerCase();
 			filteredTodos = todos.filter(t => 
@@ -44,15 +39,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 			);
 		}
 
-		// Apply visibility filter
 		filteredTodos = this.applyVisibilityFilter(filteredTodos);
-
-		// If distinct search is active, force 'list' view to show results clearly
-		if (this.searchQuery && this.viewMode !== 'list') {
-			// Optional: we could force list view, or keep grouping. 
-			// Let's keep grouping if the user wants, but list is usually better for search.
-			// For now, let's respect the view mode but filter the items within logic.
-		}
 
 		switch (this.viewMode) {
 			case 'priority':
@@ -67,10 +54,9 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		}
 	}
 
-	private getGroupChildren(group: TodoGroupItem, allTodos: Todo[]): TodoItem[] {
+	private getGroupChildren(group: TodoGroupItem, allTodos: ITodo[]): TodoItem[] {
 		let filtered = allTodos;
 		
-		// Re-apply search if needed (though groups are usually built from filtered list)
 		if (this.searchQuery) {
 			const query = this.searchQuery.toLowerCase();
 			filtered = allTodos.filter(t => 
@@ -79,7 +65,6 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 			);
 		}
 		
-		// Apply visibility filter
 		filtered = this.applyVisibilityFilter(filtered);
 
 		if (group.contextValue === 'group-priority') {
@@ -102,7 +87,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		return [];
 	}
 
-	private groupByPriority(todos: Todo[]): TodoGroupItem[] {
+	private groupByPriority(todos: ITodo[]): TodoGroupItem[] {
 		const high = todos.filter(t => t.priority === TodoPriority.High);
 		const medium = todos.filter(t => t.priority === TodoPriority.Medium);
 		const low = todos.filter(t => t.priority === TodoPriority.Low);
@@ -115,7 +100,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		return groups;
 	}
 
-	private groupByStatus(todos: Todo[]): TodoGroupItem[] {
+	private groupByStatus(todos: ITodo[]): TodoGroupItem[] {
 		const completed = todos.filter(t => t.isCompleted);
 		const pending = todos.filter(t => !t.isCompleted);
 
@@ -125,7 +110,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		];
 	}
 
-	private groupByDate(todos: Todo[]): TodoGroupItem[] {
+	private groupByDate(todos: ITodo[]): TodoGroupItem[] {
 		const now = new Date();
 		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 		const tomorrowStart = todayStart + 86400000;
@@ -158,13 +143,13 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		return groups;
 	}
 
-	private getDateGroupChildren(label: string, todos: Todo[]): TodoItem[] {
+	private getDateGroupChildren(label: string, todos: ITodo[]): TodoItem[] {
 		const now = new Date();
 		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 		const tomorrowStart = todayStart + 86400000;
 		const nextWeekEnd = todayStart + (7 * 86400000);
 
-		let filtered: Todo[] = [];
+		let filtered: ITodo[] = [];
 		switch (label) {
 			case 'Overdue':
 				filtered = todos.filter(t => t.dueDate && t.dueDate < todayStart && !t.isCompleted);
@@ -204,7 +189,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoItem | 
 		this._onDidChangeTreeData.fire();
 	}
 
-	private applyVisibilityFilter(todos: Todo[]): Todo[] {
+	private applyVisibilityFilter(todos: ITodo[]): ITodo[] {
 		switch (this.visibilityFilter) {
 			case 'active':
 				return todos.filter(t => !t.isCompleted);
