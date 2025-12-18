@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Todo } from './todo';
+import { Todo, TodoPriority } from './todo';
 import { TodoItem } from './todoItem';
 import { TodoTreeDataProvider } from './todoProvider';
 import { TodoStorage } from './todoStorage';
@@ -16,9 +16,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 	treeView.onDidChangeCheckboxState(e => {
 		for (const [item, state] of e.items) {
-			import('./commands').then(({ toggleTodo }) => {
-				toggleTodo(item, storage, todoProvider);
-			});
+			if (item instanceof TodoItem) {
+				import('./commands').then(({ toggleTodo }) => {
+					toggleTodo(item, storage, todoProvider);
+				});
+			}
 		}
 	});
 
@@ -51,14 +53,51 @@ export function activate(context: vscode.ExtensionContext) {
 				deleteTodo(item, storage, todoProvider);
 			});
 		}),
+
+		vscode.commands.registerCommand('personal-todo-list.setPriorityHigh', (item: TodoItem) => {
+			import('./commands').then(({ setPriority }) => {
+				setPriority(item, storage, todoProvider, TodoPriority.High);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.setPriorityMedium', (item: TodoItem) => {
+			import('./commands').then(({ setPriority }) => {
+				setPriority(item, storage, todoProvider, 'Medium' as any);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.setPriorityLow', (item: TodoItem) => {
+			import('./commands').then(({ setPriority }) => {
+				setPriority(item, storage, todoProvider, 'Low' as any);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.setDueDate', (item: TodoItem) => {
+			import('./commands').then(({ setDueDate }) => {
+				setDueDate(item, storage, todoProvider);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.duplicateTodo', (item: TodoItem) => {
+			import('./commands').then(({ duplicateTodo }) => {
+				duplicateTodo(item, storage, todoProvider);
+			});
+		}),
+		
+		vscode.commands.registerCommand('personal-todo-list.changeViewMode', () => {
+			import('./commands').then(({ changeViewMode }) => {
+				changeViewMode(todoProvider, treeView);
+			});
+		}),
 		vscode.commands.registerCommand('personal-todo-list.filterTodos', () => {
 			import('./commands').then(({ filterTodos }) => {
 				filterTodos(todoProvider, treeView);
 			});
 		}),
-		vscode.commands.registerCommand('personal-todo-list.filterTodosByDate', () => {
-			import('./commands').then(({ filterTodosByDate }) => {
-				filterTodosByDate(todoProvider, treeView);
+		vscode.commands.registerCommand('personal-todo-list.searchTodos', () => {
+			import('./commands').then(({ searchTodos }) => {
+				searchTodos(todoProvider, treeView);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.clearSearch', () => {
+			import('./commands').then(({ clearSearch }) => {
+				clearSearch(todoProvider, treeView);
 			});
 		})
 	);
@@ -86,9 +125,10 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	// Register focus command
+	// Register focus command
 	context.subscriptions.push(
 		vscode.commands.registerCommand('personal-todo-list.focusView', () => {
-			vscode.commands.executeCommand('personal-todo-list.todoView.focus');
+			treeView.reveal(treeView.selection[0] || undefined, { focus: true });
 		})
 	);
 }

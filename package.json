@@ -39,7 +39,7 @@
       },
       {
         "command": "personal-todo-list.addTodo",
-        "title": "Todo: Add New Todo",
+        "title": "Add Todo",
         "icon": "$(add)"
       },
       {
@@ -58,14 +58,44 @@
         "icon": "$(trash)"
       },
       {
+        "command": "personal-todo-list.changeViewMode",
+        "title": "Change View",
+        "icon": "$(list-flat)"
+      },
+      {
         "command": "personal-todo-list.filterTodos",
-        "title": "Filter by Priority",
+        "title": "Filter",
         "icon": "$(filter)"
       },
       {
-        "command": "personal-todo-list.filterTodosByDate",
-        "title": "Filter by Date",
-        "icon": "$(calendar)"
+        "command": "personal-todo-list.searchTodos",
+        "title": "Search",
+        "icon": "$(search)"
+      },
+      {
+        "command": "personal-todo-list.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(close)"
+      },
+      {
+        "command": "personal-todo-list.setPriorityHigh",
+        "title": "Set Priority: High"
+      },
+      {
+        "command": "personal-todo-list.setPriorityMedium",
+        "title": "Set Priority: Medium"
+      },
+      {
+        "command": "personal-todo-list.setPriorityLow",
+        "title": "Set Priority: Low"
+      },
+      {
+        "command": "personal-todo-list.setDueDate",
+        "title": "Set Due Date"
+      },
+      {
+        "command": "personal-todo-list.duplicateTodo",
+        "title": "Duplicate"
       }
     ],
     "menus": {
@@ -76,34 +106,79 @@
           "group": "navigation"
         },
         {
+          "command": "personal-todo-list.changeViewMode",
+          "when": "view == personal-todo-list.todoView",
+          "group": "navigation"
+        },
+        {
           "command": "personal-todo-list.filterTodos",
           "when": "view == personal-todo-list.todoView",
           "group": "navigation"
         },
         {
-          "command": "personal-todo-list.filterTodosByDate",
+          "command": "personal-todo-list.searchTodos",
           "when": "view == personal-todo-list.todoView",
+          "group": "navigation"
+        },
+        {
+          "command": "personal-todo-list.clearSearch",
+          "when": "view == personal-todo-list.todoView && viewItem == searchActive",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "personal-todo-list.editTodo",
-          "when": "view == personal-todo-list.todoView",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
           "group": "inline"
         },
         {
           "command": "personal-todo-list.toggleTodo",
-          "when": "view == personal-todo-list.todoView",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
           "group": "inline"
         },
         {
           "command": "personal-todo-list.deleteTodo",
-          "when": "view == personal-todo-list.todoView",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
           "group": "inline"
+        },
+        {
+          "submenu": "personal-todo-list.prioritySubmenu",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
+          "group": "2_actions"
+        },
+        {
+          "command": "personal-todo-list.setDueDate",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
+          "group": "2_actions"
+        },
+        {
+          "command": "personal-todo-list.duplicateTodo",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
+          "group": "2_actions"
+        }
+      ],
+      "personal-todo-list.prioritySubmenu": [
+        {
+          "command": "personal-todo-list.setPriorityHigh",
+          "group": "1_priority"
+        },
+        {
+          "command": "personal-todo-list.setPriorityMedium",
+          "group": "1_priority"
+        },
+        {
+          "command": "personal-todo-list.setPriorityLow",
+          "group": "1_priority"
         }
       ]
-    }
+    },
+    "submenus": [
+      {
+        "id": "personal-todo-list.prioritySubmenu",
+        "label": "Change Priority"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
