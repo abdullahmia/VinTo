@@ -222,6 +222,13 @@
         "id": "personal-todo-list.prioritySubmenu",
         "label": "Change Priority"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "personal-todo-list.todoView.focus",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
+      }
     ]
   },
   "scripts": {
