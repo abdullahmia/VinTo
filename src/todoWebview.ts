@@ -8,10 +8,12 @@ export class TodoPanel {
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
     private _disposables: vscode.Disposable[] = [];
+    private _todoToEdit?: Todo;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private readonly storage: TodoStorage, private readonly provider: TodoTreeDataProvider) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private readonly storage: TodoStorage, private readonly provider: TodoTreeDataProvider, todoToEdit?: Todo) {
         this._panel = panel;
         this._extensionUri = extensionUri;
+        this._todoToEdit = todoToEdit;
 
         // Set the webview's initial html content
         this._update();
@@ -27,6 +29,9 @@ export class TodoPanel {
                     case 'addTodo':
                         this._addTodo(message.data);
                         return;
+                    case 'updateTodo':
+                        this._updateTodo(message.data);
+                        return;
                     case 'cancel':
                         this.dispose();
                         return;
@@ -37,21 +42,27 @@ export class TodoPanel {
         );
     }
 
-    public static createOrShow(extensionUri: vscode.Uri, storage: TodoStorage, provider: TodoTreeDataProvider) {
+    public static createOrShow(extensionUri: vscode.Uri, storage: TodoStorage, provider: TodoTreeDataProvider, todoToEdit?: Todo) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
 
         // If we already have a panel, show it.
+        // NOTE: If we are switching from Add to Edit or vice versa, we might want to recreate or update.
+        // For simplicity, let's close the old one if it exists or reuse it but update state.
         if (TodoPanel.currentPanel) {
+            TodoPanel.currentPanel._todoToEdit = todoToEdit;
+            TodoPanel.currentPanel._update();
             TodoPanel.currentPanel._panel.reveal(column);
             return;
         }
 
+        const title = todoToEdit ? `Edit Todo: ${todoToEdit.title}` : 'Add New Todo';
+
         // Otherwise, create a new panel.
         const panel = vscode.window.createWebviewPanel(
             'todoWebview',
-            'Add New Todo',
+            title,
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -59,7 +70,7 @@ export class TodoPanel {
             }
         );
 
-        TodoPanel.currentPanel = new TodoPanel(panel, extensionUri, storage, provider);
+        TodoPanel.currentPanel = new TodoPanel(panel, extensionUri, storage, provider, todoToEdit);
     }
 
     public dispose() {
@@ -76,6 +87,7 @@ export class TodoPanel {
     }
 
     private _update() {
+        this._panel.title = this._todoToEdit ? `Edit: ${this._todoToEdit.title}` : 'Add New Todo';
         this._panel.webview.html = this._getHtmlForWebview();
     }
 
@@ -110,6 +122,37 @@ export class TodoPanel {
         this.dispose();
     }
 
+    private async _updateTodo(data: any) {
+        if (!this._todoToEdit) return;
+
+        const { title, description, priority, dueDate, tags } = data;
+
+         if (!title) {
+            vscode.window.showErrorMessage('Title is required');
+            return;
+        }
+
+        let parsedDate: number | undefined;
+        if (dueDate) {
+            parsedDate = Date.parse(dueDate);
+            if (isNaN(parsedDate)) parsedDate = undefined;
+        }
+
+        const updatedTodo: Todo = {
+            ...this._todoToEdit,
+            title,
+            description,
+            priority: priority as TodoPriority,
+            dueDate: parsedDate,
+            tags: tags ? tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : undefined
+        };
+
+        await this.storage.updateTodo(updatedTodo);
+        this.provider.refresh();
+        vscode.window.showInformationMessage(`Updated todo: ${title}`);
+        this.dispose();
+    }
+
     private _generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -118,12 +161,24 @@ export class TodoPanel {
     }
 
     private _getHtmlForWebview() {
+        const todo = this._todoToEdit;
+        const isEdit = !!todo;
+        
+        const titleVal = isEdit ? todo.title : '';
+        const descVal = isEdit ? (todo.description || '') : '';
+        const priorityVal = isEdit ? todo.priority : 'medium';
+        const dateVal = isEdit && todo.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '';
+        const tagsVal = isEdit && todo.tags ? todo.tags.join(', ') : '';
+
+        const submitBtnText = isEdit ? 'Update Todo' : 'Add Todo';
+        const command = isEdit ? 'updateTodo' : 'addTodo';
+
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Todo</title>
+    <title>${isEdit ? 'Edit Todo' : 'Add Todo'}</title>
     <style>
         :root {
             --container-padding: 20px;
@@ -254,43 +309,43 @@ export class TodoPanel {
 </head>
 <body>
     <div class="container">
-        <h2>Add New Todo</h2>
+        <h2>${isEdit ? 'Edit Todo' : 'Add New Todo'}</h2>
         
         <div id="error-container" class="error-message"></div>
 
         <form id="todo-form">
             <div class="form-group">
                 <label for="title">Title <span class="required">*</span></label>
-                <input type="text" id="title" name="title" placeholder="e.g. Update user profile page" required autocomplete="off">
+                <input type="text" id="title" name="title" placeholder="e.g. Update user profile page" required autocomplete="off" value="${titleVal}">
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
-                <textarea id="description" name="description" placeholder="Add details..."></textarea>
+                <textarea id="description" name="description" placeholder="Add details...">${descVal}</textarea>
             </div>
 
             <div class="form-group">
                 <label for="priority">Priority</label>
                 <select id="priority" name="priority">
-                    <option value="High">High</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="high" ${priorityVal === 'high' ? 'selected' : ''}>High</option>
+                    <option value="medium" ${priorityVal === 'medium' ? 'selected' : ''}>Medium</option>
+                    <option value="low" ${priorityVal === 'low' ? 'selected' : ''}>Low</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="dueDate">Due Date</label>
-                <input type="date" id="dueDate" name="dueDate">
+                <input type="date" id="dueDate" name="dueDate" value="${dateVal}">
             </div>
 
             <div class="form-group">
                 <label for="tags">Tags</label>
-                <input type="text" id="tags" name="tags" placeholder="Comma separated, e.g. work, urgent">
+                <input type="text" id="tags" name="tags" placeholder="Comma separated, e.g. work, urgent" value="${tagsVal}">
             </div>
 
             <div class="actions">
                 <button type="button" class="secondary" id="cancel-btn">Cancel</button>
-                <button type="submit" class="primary">Add Todo</button>
+                <button type="submit" class="primary">${submitBtnText}</button>
             </div>
         </form>
     </div>
@@ -324,7 +379,7 @@ export class TodoPanel {
             const tags = document.getElementById('tags').value;
 
             vscode.postMessage({
-                command: 'addTodo',
+                command: '${command}',
                 data: {
                     title,
                     description,

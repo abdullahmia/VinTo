@@ -26,6 +26,12 @@ export class TodoItem extends vscode.TreeItem {
 			this.checkboxState = vscode.TreeItemCheckboxState.Unchecked;
 			this.contextValue = 'todo-active';
 		}
+
+		this.command = {
+			command: 'personal-todo-list.openTodo',
+			title: 'Open Todo',
+			arguments: [todo]
+		};
 	}
 
 	private getPriorityIcon(priority: TodoPriority): vscode.ThemeIcon {

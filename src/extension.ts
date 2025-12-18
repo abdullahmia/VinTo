@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { Todo } from './todo';
 import { TodoItem } from './todoItem';
 import { TodoTreeDataProvider } from './todoProvider';
 import { TodoStorage } from './todoStorage';
@@ -32,7 +33,12 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.commands.registerCommand('personal-todo-list.editTodo', (item: TodoItem) => {
 			import('./commands').then(({ editTodo }) => {
-				editTodo(item, storage, todoProvider);
+				editTodo(context.extensionUri, item, storage, todoProvider);
+			});
+		}),
+		vscode.commands.registerCommand('personal-todo-list.openTodo', (todo: Todo) => {
+			import('./commands').then(({ openTodo }) => {
+				openTodo(context.extensionUri, todo, storage, todoProvider);
 			});
 		}),
 		vscode.commands.registerCommand('personal-todo-list.toggleTodo', (item: TodoItem) => {

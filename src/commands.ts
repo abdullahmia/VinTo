@@ -9,76 +9,15 @@ export async function addTodo(extensionUri: vscode.Uri, storage: TodoStorage, pr
 	TodoPanel.createOrShow(extensionUri, storage, provider);
 }
 
-export async function editTodo(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
-	const todo = item.todo;
+import { TodoDetailPanel } from './todoDetailWebview';
 
-	// 1. Edit Title
-	const title = await vscode.window.showInputBox({
-		prompt: 'Edit todo title',
-		value: todo.title,
-		validateInput: (value) => {
-			return value ? null : 'Title is required';
-		}
-	});
+export async function openTodo(extensionUri: vscode.Uri, todo: Todo, storage: TodoStorage, provider: TodoTreeDataProvider) {
+    // vscode.window.showInformationMessage(`Open Todo: ${JSON.stringify(todo)}`);
+    TodoDetailPanel.createOrShow(extensionUri, todo, storage, provider);
+}
 
-	if (!title) {
-		return;
-	}
-
-	// 2. Edit Description
-	const description = await vscode.window.showInputBox({
-		prompt: 'Edit description (optional)',
-		value: todo.description || ''
-	});
-
-	// 3. Edit Priority
-	const priority = await vscode.window.showQuickPick(
-		[TodoPriority.High, TodoPriority.Medium, TodoPriority.Low],
-		{
-			placeHolder: 'Select priority',
-		}
-	) as TodoPriority | undefined;
-
-	if (!priority) {
-		return;
-	}
-
-	// 4. Edit Due Date
-	let initialDateStr = '';
-	if (todo.dueDate) {
-		// basic generic ISO string YYYY-MM-DD
-		initialDateStr = new Date(todo.dueDate).toISOString().split('T')[0];
-	}
-
-	const dateString = await vscode.window.showInputBox({
-		prompt: 'Edit due date (optional, YYYY-MM-DD)',
-		value: initialDateStr,
-		placeHolder: 'YYYY-MM-DD'
-	});
-
-	let dueDate: number | undefined;
-	if (dateString) {
-		const parsedDate = Date.parse(dateString);
-		if (!isNaN(parsedDate)) {
-			dueDate = parsedDate;
-		} else {
-			vscode.window.showWarningMessage('Invalid date format. Due date ignored or cleared.');
-		}
-	}
-
-	// 5. Update Todo
-	const updatedTodo: Todo = {
-		...todo,
-		title: title,
-		description: description,
-		priority: priority,
-		dueDate: dueDate
-	};
-
-	// 6. Save and Refresh
-	await storage.updateTodo(updatedTodo);
-	provider.refresh();
-	vscode.window.showInformationMessage(`Updated todo: ${title}`);
+export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
+    TodoPanel.createOrShow(extensionUri, storage, provider, item.todo);
 }
 
 export async function toggleTodo(item: TodoItem, storage: TodoStorage, provider: TodoTreeDataProvider) {
