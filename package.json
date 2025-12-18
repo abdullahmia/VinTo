@@ -10,6 +10,19 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "todo",
+    "task",
+    "tasks",
+    "todo list",
+    "task manager",
+    "productivity",
+    "organizer",
+    "planner",
+    "checklist",
+    "project management",
+    "task tracking"
+  ],
   "_moduleAliases": {
     "@": "out"
   },
