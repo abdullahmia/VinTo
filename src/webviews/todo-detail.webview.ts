@@ -223,7 +223,16 @@ export class TodoDetailPanel {
             font-size: 1.1em;
             line-height: 1.6;
             margin-bottom: 30px;
-            white-space: pre-wrap; 
+            /* white-space: pre-wrap; Removed for HTML content */
+        }
+        .description ul, .description ol {
+            padding-left: 20px;
+        }
+        .description blockquote {
+            border-left: 4px solid var(--border);
+            padding-left: 10px;
+            margin-left: 0;
+            opacity: 0.8;
         }
 
         .info-grid {

@@ -33,10 +33,11 @@ export class TodoItem extends vscode.TreeItem {
 	}
 
 	private getTooltip(): string {
+		const cleanDescription = this.todo.description ? this.todo.description.replace(/<[^>]*>?/gm, '') : '';
 		const parts = [
 			`Status: ${this.todo.isCompleted ? 'Completed' : 'Pending'}`,
 			`Priority: ${this.todo.priority}`,
-			this.todo.description ? `\n${this.todo.description}` : '',
+			cleanDescription ? `\n${cleanDescription}` : '',
 			this.todo.dueDate ? `\nDue: ${new Date(this.todo.dueDate).toLocaleDateString()}` : ''
 		];
 		return parts.filter(Boolean).join('\n');
