@@ -24,6 +24,12 @@ export class TodoItem extends vscode.TreeItem {
 		if (todo.isCompleted) {
 			this.resourceUri = vscode.Uri.parse(`todo:${this.label}`);
 		}
+
+		this.command = {
+			command: 'personal-todo-list.openTodo',
+			title: 'Open Todo',
+			arguments: [this.todo]
+		};
 	}
 
 	private getTooltip(): string {
