@@ -3,7 +3,7 @@
   "displayName": "Personal Todo List",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
   "version": "0.0.1",
-  "icon": "assets/logo.png",
+  "icon": "resources/logo.png",
   "engines": {
     "vscode": "^1.80.0"
   },
