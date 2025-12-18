@@ -16,6 +16,16 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Personal Todo List",
+      "properties": {
+        "personal-todo-list.showPendingTasksAlert": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show alert notification for pending tasks when VS Code opens"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -98,6 +108,21 @@
       {
         "command": "personal-todo-list.duplicateTodo",
         "title": "Duplicate"
+      },
+      {
+        "command": "personal-todo-list.setupProfile",
+        "title": "Setup/Edit Profile",
+        "icon": "$(account)"
+      },
+      {
+        "command": "personal-todo-list.viewProfile",
+        "title": "View Profile",
+        "icon": "$(person)"
+      },
+      {
+        "command": "personal-todo-list.showProfileOverview",
+        "title": "Show Profile Overview",
+        "icon": "$(graph)"
       }
     ],
     "menus": {
