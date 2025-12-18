@@ -146,12 +146,11 @@ export class TodoPanel {
     }
 
     private _getHtmlForWebview() {
-        // Reuse existing HTML logic, omitted for brevity but should be fully copied in real scenario. I will assume I need to copy the full HTML.
         const todo = this._todoToEdit;
         const isEdit = !!todo;
         
         const titleVal = isEdit ? todo.title : '';
-        const descVal = isEdit ? (todo.description || '') : '';
+        const descVal = isEdit ? (todo.description || '') : ''; // Quill will handle this
         const priorityVal = isEdit ? todo.priority : 'medium';
         const dateVal = isEdit && todo.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '';
         const tagsVal = isEdit && todo.tags ? todo.tags.join(', ') : '';
@@ -159,18 +158,30 @@ export class TodoPanel {
         const submitBtnText = isEdit ? 'Update Todo' : 'Add Todo';
         const command = isEdit ? 'updateTodo' : 'addTodo';
 
+        // Using a nonce for security
+        const nonce = this._getNonce();
+
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this._panel.webview.cspSource} 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; script-src 'nonce-${nonce}' https://cdn.jsdelivr.net https://unpkg.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${isEdit ? 'Edit Todo' : 'Add Todo'}</title>
+    
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    
+    <!-- Quill CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+
     <style>
         :root {
             --container-padding: 20px;
             --input-padding: 8px 12px;
             --label-margin-bottom: 6px;
-            --field-margin-bottom: 16px;
+            --field-margin-bottom: 20px;
             --radius: 4px;
             --primary-color: var(--vscode-button-background);
             --primary-hover: var(--vscode-button-hoverBackground);
@@ -191,11 +202,12 @@ export class TodoPanel {
             display: flex;
             justify-content: center;
             padding-top: 40px;
+            padding-bottom: 60px; /* Space for scroll */
         }
 
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             padding: var(--container-padding);
         }
 
@@ -224,7 +236,6 @@ export class TodoPanel {
 
         input[type="text"],
         input[type="date"],
-        textarea,
         select {
             width: 100%;
             padding: var(--input-padding);
@@ -236,14 +247,35 @@ export class TodoPanel {
             box-sizing: border-box; 
         }
 
-        input:focus, textarea:focus, select:focus {
+        input:focus, select:focus {
             outline: 1px solid var(--vscode-focusBorder);
             border-color: var(--vscode-focusBorder);
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 80px;
+        /* Quill Override */
+        .ql-toolbar {
+            border-color: var(--border) !important;
+            background-color: var(--vscode-editor-background);
+            border-top-left-radius: var(--radius);
+            border-top-right-radius: var(--radius);
+        }
+        .ql-container {
+            border-color: var(--border) !important;
+            background-color: var(--input-bg);
+            color: var(--input-fg);
+            border-bottom-left-radius: var(--radius);
+            border-bottom-right-radius: var(--radius);
+            font-family: inherit;
+            min-height: 150px;
+        }
+        .ql-stroke {
+            stroke: var(--foreground) !important;
+        }
+        .ql-fill {
+            fill: var(--foreground) !important;
+        }
+        .ql-picker {
+            color: var(--foreground) !important;
         }
 
         .actions {
@@ -281,7 +313,6 @@ export class TodoPanel {
             background-color: var(--vscode-list-hoverBackground);
         }
 
-        /* Error state tailored for VS Code */
         .error-message {
             color: var(--vscode-inputValidation-errorForeground);
             background-color: var(--vscode-inputValidation-errorBackground);
@@ -300,33 +331,41 @@ export class TodoPanel {
         <div id="error-container" class="error-message"></div>
 
         <form id="todo-form">
+            <!-- Title -->
             <div class="form-group">
                 <label for="title">Title <span class="required">*</span></label>
                 <input type="text" id="title" name="title" placeholder="e.g. Update user profile page" required autocomplete="off" value="${titleVal}">
             </div>
 
-            <div class="form-group">
-                <label for="description">Description</label>
-                <textarea id="description" name="description" placeholder="Add details...">${descVal}</textarea>
+            <!-- Priority & Due Date Row -->
+            <div style="display: flex; gap: 20px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="priority">Priority</label>
+                    <select id="priority" name="priority">
+                        <option value="high" ${priorityVal === 'high' ? 'selected' : ''}>High</option>
+                        <option value="medium" ${priorityVal === 'medium' ? 'selected' : ''}>Medium</option>
+                        <option value="low" ${priorityVal === 'low' ? 'selected' : ''}>Low</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="flex: 1;">
+                    <label for="dueDate">Due Date</label>
+                    <input type="text" id="dueDate" name="dueDate" placeholder="Select date..." value="${dateVal}">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="priority">Priority</label>
-                <select id="priority" name="priority">
-                    <option value="high" ${priorityVal === 'high' ? 'selected' : ''}>High</option>
-                    <option value="medium" ${priorityVal === 'medium' ? 'selected' : ''}>Medium</option>
-                    <option value="low" ${priorityVal === 'low' ? 'selected' : ''}>Low</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="dueDate">Due Date</label>
-                <input type="date" id="dueDate" name="dueDate" value="${dateVal}">
-            </div>
-
+            <!-- Tags -->
             <div class="form-group">
                 <label for="tags">Tags</label>
                 <input type="text" id="tags" name="tags" placeholder="Comma separated, e.g. work, urgent" value="${tagsVal}">
+            </div>
+
+            <!-- Description (Last) -->
+            <div class="form-group">
+                <label for="description">Description (Rich Text)</label>
+                <!-- Quill container -->
+                <div id="editor-container"></div>
+                <!-- Hidden input to store initial value for script access if needed, though we inject directly js -->
             </div>
 
             <div class="actions">
@@ -336,12 +375,45 @@ export class TodoPanel {
         </form>
     </div>
 
-    <script>
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
 
         const form = document.getElementById('todo-form');
         const cancelBtn = document.getElementById('cancel-btn');
         const errorContainer = document.getElementById('error-container');
+
+        // Initialize Flatpickr
+        flatpickr("#dueDate", {
+            dateFormat: "Y-m-d",
+            theme: "dark",
+            allowInput: true
+        });
+
+        // Initialize Quill
+        const quill = new Quill('#editor-container', {
+            theme: 'snow',
+            placeholder: 'Add details...',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['link', 'clean']
+                ]
+            }
+        });
+
+        // Set initial content for Quill
+        // We need to be careful about escaping. simpler to do it via js assignment if the content is complex strings
+        // But for basic usage, let's try injecting. 
+        // A safer way is to use setContents or root.innerHTML via JS variable injection.
+        const initialDesc = \`${descVal.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
+        quill.root.innerHTML = initialDesc;
 
         // Handle Cancel
         cancelBtn.addEventListener('click', () => {
@@ -352,14 +424,20 @@ export class TodoPanel {
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             
-            // Basic client-side validation logic
             const title = document.getElementById('title').value.trim();
             if (!title) {
                 showError('Title is required.');
                 return;
             }
 
-            const description = document.getElementById('description').value.trim();
+            // Get Description from Quill
+            // We'll send the HTML content
+            const description = quill.root.innerHTML;
+            
+            // Check if it's just an empty paragraph (Quill default)
+            const isDescEmpty = quill.getText().trim().length === 0;
+            const finalDescription = isDescEmpty ? '' : description;
+
             const priority = document.getElementById('priority').value;
             const dueDate = document.getElementById('dueDate').value;
             const tags = document.getElementById('tags').value;
@@ -368,7 +446,7 @@ export class TodoPanel {
                 command: '${command}',
                 data: {
                     title,
-                    description,
+                    description: finalDescription,
                     priority,
                     dueDate,
                     tags
@@ -383,5 +461,14 @@ export class TodoPanel {
     </script>
 </body>
 </html>`;
+    }
+
+    private _getNonce() {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
     }
 }

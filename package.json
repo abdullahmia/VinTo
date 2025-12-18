@@ -3,7 +3,7 @@
   "displayName": "Personal Todo List",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
   "version": "0.0.1",
-  "icon": "resources/logo.png",
+  "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -21,7 +21,7 @@
         {
           "id": "personal-todo-list-container",
           "title": "Todo List",
-          "icon": "resources/icon.svg"
+          "icon": "assets/icon.svg"
         }
       ]
     },
@@ -30,7 +30,7 @@
         {
           "id": "personal-todo-list.todoView",
           "name": "Personal Todo List",
-          "icon": "resources/icon.svg"
+          "icon": "assets/icon.svg"
         }
       ]
     },
@@ -105,27 +105,27 @@
         {
           "command": "personal-todo-list.addTodo",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "personal-todo-list.changeViewMode",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "personal-todo-list.filterTodos",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "personal-todo-list.searchTodos",
           "when": "view == personal-todo-list.todoView",
-          "group": "navigation"
+          "group": "navigation@4"
         },
         {
           "command": "personal-todo-list.clearSearch",
-          "when": "view == personal-todo-list.todoView && viewItem == searchActive",
-          "group": "navigation"
+          "when": "view == personal-todo-list.todoView && personal-todo-list.isSearching",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [

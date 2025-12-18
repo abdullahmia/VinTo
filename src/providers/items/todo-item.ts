@@ -24,13 +24,20 @@ export class TodoItem extends vscode.TreeItem {
 		if (todo.isCompleted) {
 			this.resourceUri = vscode.Uri.parse(`todo:${this.label}`);
 		}
+
+		this.command = {
+			command: 'personal-todo-list.openTodo',
+			title: 'Open Todo',
+			arguments: [this.todo]
+		};
 	}
 
 	private getTooltip(): string {
+		const cleanDescription = this.todo.description ? this.todo.description.replace(/<[^>]*>?/gm, '') : '';
 		const parts = [
 			`Status: ${this.todo.isCompleted ? 'Completed' : 'Pending'}`,
 			`Priority: ${this.todo.priority}`,
-			this.todo.description ? `\n${this.todo.description}` : '',
+			cleanDescription ? `\n${cleanDescription}` : '',
 			this.todo.dueDate ? `\nDue: ${new Date(this.todo.dueDate).toLocaleDateString()}` : ''
 		];
 		return parts.filter(Boolean).join('\n');
