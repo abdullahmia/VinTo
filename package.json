@@ -268,7 +268,7 @@
     ]
   },
   "scripts": {
-    "release": "npx vsce publish",
+    "release": "npx vsce publish && npx ovsx publish",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",

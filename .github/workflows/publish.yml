@@ -28,8 +28,9 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # This enables Changesets to publish to VS Code Marketplace directly
+          # This enables Changesets to publish to VS Code Marketplace and Open VSX
           publish: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
