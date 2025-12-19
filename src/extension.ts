@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const storage = new TodoStorageService(context);
 	const profileService = new UserProfileService(context);
 	const todoProvider = new TodoTreeProvider(storage);
-	const codeTodoProvider = new CodeTodoProvider();
+	const codeTodoProvider = new CodeTodoProvider(context.extensionUri);
 	
 	const treeView = vscode.window.createTreeView('personal-todo-list.todoView', {
 		treeDataProvider: todoProvider
@@ -26,10 +26,19 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	// Refresh Code TODOs on file save
 	context.subscriptions.push(
-		vscode.workspace.onDidSaveTextDocument(() => {
-			codeTodoProvider.refresh();
+		vscode.workspace.onDidSaveTextDocument((doc) => {
+			codeTodoProvider.refresh(doc.uri, true);
 		})
 	);
+
+	// Periodic full scan (silent/background) every 30 minutes
+	const scanInterval = setInterval(() => {
+		codeTodoProvider.refresh(undefined, true);
+	}, 30 * 60 * 1000);
+	
+	context.subscriptions.push({
+		dispose: () => clearInterval(scanInterval)
+	});
 
 	treeView.onDidChangeCheckboxState(e => {
 		for (const [item, state] of e.items) {

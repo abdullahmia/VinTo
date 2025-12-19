@@ -21,33 +21,58 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
   private _onDidChangeTreeData: vscode.EventEmitter<CodeTodoFile | CodeTodoItem | undefined | null | void> = new vscode.EventEmitter<CodeTodoFile | CodeTodoItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<CodeTodoFile | CodeTodoItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-  private todos: CodeTodoFile[] = [];
+  private todoMap: Map<string, CodeTodoFile> = new Map();
   private isLoading: boolean = false;
+  private extensionUri: vscode.Uri;
 
-  constructor() {
+  constructor(extensionUri: vscode.Uri) {
+    this.extensionUri = extensionUri;
     this.refresh();
   }
 
-  refresh(): void {
+  get todos(): CodeTodoFile[] {
+    return Array.from(this.todoMap.values()).sort((a, b) => {
+      return path.basename(a.resourceUri.fsPath).localeCompare(path.basename(b.resourceUri.fsPath));
+    });
+  }
+
+  refresh(uri?: vscode.Uri, silent: boolean = false): void {
     if (this.isLoading) {
       return;
     }
 
-    vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: "Scanning codebase for TODOs...",
-      cancellable: false
-    }, async (progress) => {
+    if (uri) {
+      // Incremental update (always silent)
+      this.scanFile(uri).then(() => {
+        this._onDidChangeTreeData.fire();
+      });
+      return;
+    }
+
+    // Full scan
+    if (silent) {
       this.isLoading = true;
-      this._onDidChangeTreeData.fire();
-      
-      try {
-        await this.scanWorkspace();
-      } finally {
+      this.scanWorkspace().finally(() => {
         this.isLoading = false;
         this._onDidChangeTreeData.fire();
-      }
-    });
+      });
+    } else {
+      vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Scanning codebase for TODOs...",
+        cancellable: false
+      }, async (progress) => {
+        this.isLoading = true;
+        this._onDidChangeTreeData.fire();
+        
+        try {
+          await this.scanWorkspace();
+        } finally {
+          this.isLoading = false;
+          this._onDidChangeTreeData.fire();
+        }
+      });
+    }
   }
 
   getTreeItem(element: CodeTodoFile | CodeTodoItem): vscode.TreeItem {
@@ -56,6 +81,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       const treeItem = new vscode.TreeItem(element.resourceUri, vscode.TreeItemCollapsibleState.Expanded);
       treeItem.contextValue = 'codeTodoFile';
       treeItem.description = `(${element.items.length})`;
+      treeItem.iconPath = this.getFileIcon(element.resourceUri);
       return treeItem;
     } else {
       // It's a todo item
@@ -94,30 +120,96 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
 
     if (!element) {
       // Root: return files
-      if (this.todos.length === 0) {
+      const sortedTodos = this.todos;
+      if (sortedTodos.length === 0) {
         return [];
       }
-      return this.todos;
+      return sortedTodos;
     } else if ('resourceUri' in element) {
       // File: return items
       return element.items;
     }
     return [];
   }
-  private async scanWorkspace(): Promise<void> {
+
+  private getFileIcon(uri: vscode.Uri): vscode.Uri {
+    const ext = path.extname(uri.fsPath).toLowerCase().replace('.', '');
+    const fileName = path.basename(uri.fsPath).toLowerCase();
+
+    // Mapping for common files/extensions to icon names
+    const extensionMap: { [key: string]: string } = {
+      'ts': 'typescript',
+      'tsx': 'reactts',
+      'js': 'js',
+      'jsx': 'reactjs',
+      'json': 'json',
+      'md': 'markdown',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'less': 'less',
+      'html': 'html',
+      'py': 'python',
+      'go': 'go',
+      'rs': 'rust',
+      'rb': 'ruby',
+      'php': 'php',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'cs': 'csharp',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'xml': 'xml',
+      'sh': 'shell',
+      'sql': 'sql',
+      'svg': 'svg',
+      'png': 'image',
+      'jpg': 'image',
+      'jpeg': 'image',
+      'gif': 'image',
+      'pdf': 'pdf',
+      'zip': 'zip',
+      'tar': 'zip',
+      'gz': 'zip',
+      'mp3': 'audio',
+      'wav': 'audio',
+      'mp4': 'video',
+      'mov': 'video'
+    };
+
+    // Specific file name checks
+    if (fileName === 'package.json') return this.getIconUri('file_type_npm.svg');
+    if (fileName === 'tsconfig.json') return this.getIconUri('file_type_tsconfig.svg');
+    if (fileName === 'package-lock.json') return this.getIconUri('file_type_npm.svg');
+    if (fileName === 'yarn.lock') return this.getIconUri('file_type_yarn.svg');
+    if (fileName === '.gitignore') return this.getIconUri('file_type_git.svg');
+    if (fileName === 'license') return this.getIconUri('file_type_license.svg');
+
+    const iconName = extensionMap[ext] || ext;
+    const iconFileName = `file_type_${iconName}.svg`;
+    
+    const fullPath = path.join(this.extensionUri.fsPath, 'assets', 'icons', iconFileName);
+    if (fs.existsSync(fullPath)) {
+      return vscode.Uri.file(fullPath);
+    }
+
+    return this.getIconUri('default_file.svg');
+  }
+
+  private getIconUri(iconName: string): vscode.Uri {
+    return vscode.Uri.file(path.join(this.extensionUri.fsPath, 'assets', 'icons', iconName));
+  }
+
+  private getRegex(): RegExp {
     const config = vscode.workspace.getConfiguration('personal-todo-list.codeTodos');
     const rawTags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG', 'HACK', 'XXX']);
     const tags = rawTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
-    
-    if (tags.length === 0) {
-      this.todos = [];
-      return;
-    }
+    const tagPattern = tags.length > 0 ? tags.join('|') : 'TODO|FIXME';
+    return new RegExp(`(//|#|<!--|/\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
+  }
 
-    const include = config.get<string>('include', '**/*');
-    const exclude = config.get<string>('exclude', '{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**}');
-    
-    // Read .gitignore
+  private async getIgnoreRegexes(): Promise<RegExp[]> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const gitignoreRegexes: RegExp[] = [];
     
@@ -148,36 +240,88 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
         }
       }
     }
+    return gitignoreRegexes;
+  }
 
-    const shouldIgnore = (uri: vscode.Uri) => {
-      const fsPath = uri.fsPath;
-      const fileName = path.basename(fsPath);
-      const ext = path.extname(fsPath).toLowerCase();
+  private async shouldIgnore(uri: vscode.Uri, ignoreRegexes?: RegExp[]): Promise<boolean> {
+    const fsPath = uri.fsPath;
+    const fileName = path.basename(fsPath);
+    const ext = path.extname(fsPath).toLowerCase();
 
-      if (BINARY_EXTENSIONS.has(ext)) return true;
-      if (NON_HUMAN_FILES.has(fileName)) return true;
+    if (BINARY_EXTENSIONS.has(ext)) return true;
+    if (NON_HUMAN_FILES.has(fileName)) return true;
 
-      const relativePath = workspaceFolders ? path.relative(workspaceFolders[0].uri.fsPath, fsPath) : fsPath;
-      for (const regex of gitignoreRegexes) {
-        if (regex.test(relativePath) || regex.test(fsPath)) {
-          return true;
+    const regexes = ignoreRegexes || await this.getIgnoreRegexes();
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const relativePath = workspaceFolders ? path.relative(workspaceFolders[0].uri.fsPath, fsPath) : fsPath;
+    
+    for (const regex of regexes) {
+      if (regex.test(relativePath) || regex.test(fsPath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async scanFile(uri: vscode.Uri): Promise<void> {
+    if (await this.shouldIgnore(uri)) {
+      this.todoMap.delete(uri.toString());
+      return;
+    }
+
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const regex = this.getRegex();
+      const items: CodeTodoItem[] = [];
+
+      for (let lineIndex = 0; lineIndex < doc.lineCount; lineIndex++) {
+        const line = doc.lineAt(lineIndex);
+        const match = regex.exec(line.text);
+        
+        if (match && match[2] && match[3] !== undefined) {
+          items.push({
+            file: uri,
+            range: line.range,
+            line: lineIndex + 1,
+            text: (match[3] || '').trim(),
+            tag: match[2].toUpperCase()
+          });
         }
       }
-      return false;
-    };
-    
-    const tagPattern = tags.join('|');
-    const regex = new RegExp(`(//|#|<!--|/\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
-    const todoMap = new Map<string, CodeTodoFile>();
 
-    const files = await vscode.workspace.findFiles(include, exclude);
+      if (items.length > 0) {
+        this.todoMap.set(uri.toString(), {
+          resourceUri: uri,
+          items: items
+        });
+      } else {
+        this.todoMap.delete(uri.toString());
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (!errorMessage.includes('File seems to be binary')) {
+        console.error(`Error reading file ${uri.fsPath}:`, err);
+      }
+      this.todoMap.delete(uri.toString());
+    }
+  }
+
+  private async scanWorkspace(): Promise<void> {
+    const config = vscode.workspace.getConfiguration('personal-todo-list.codeTodos');
+    const include = config.get<string>('include', '**/*');
+    const exclude = config.get<string>('exclude', '{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml}');
     
-    // Parallel processing with concurrency limit
+    const ignoreRegexes = await this.getIgnoreRegexes();
+    const regex = this.getRegex();
+    
+    const files = await vscode.workspace.findFiles(include, exclude);
+    const newTodoMap = new Map<string, CodeTodoFile>();
+
     const CONCURRENCY_LIMIT = 20;
     for (let i = 0; i < files.length; i += CONCURRENCY_LIMIT) {
       const chunk = files.slice(i, i + CONCURRENCY_LIMIT);
       await Promise.all(chunk.map(async (fileUri) => {
-        if (shouldIgnore(fileUri)) {
+        if (await this.shouldIgnore(fileUri, ignoreRegexes)) {
           return;
         }
 
@@ -201,7 +345,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
           }
 
           if (items.length > 0) {
-            todoMap.set(fileUri.toString(), {
+            newTodoMap.set(fileUri.toString(), {
               resourceUri: fileUri,
               items: items
             });
@@ -215,8 +359,6 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       }));
     }
 
-    this.todos = Array.from(todoMap.values()).sort((a, b) => {
-      return path.basename(a.resourceUri.fsPath).localeCompare(path.basename(b.resourceUri.fsPath));
-    });
+    this.todoMap = newTodoMap;
   }
 }
