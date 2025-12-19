@@ -33,6 +33,9 @@ export class TodoDetailPanel {
                     case 'toggle':
                         this._toggleTodo();
                         return;
+                    case 'startFocus':
+                        this._startFocusSession();
+                        return;
                     case 'close':
                         this.dispose();
                         return;
@@ -102,6 +105,12 @@ export class TodoDetailPanel {
         this._todo = updatedTodo;
         this.provider.refresh();
         this._update(); // Refresh UI
+    }
+
+    private async _startFocusSession() {
+        // Create a TodoItem-like object for the command
+        const todoItem = { todo: this._todo };
+        await vscode.commands.executeCommand('personal-todo-list.startFocusSession', todoItem);
     }
 
     private _update() {
@@ -346,6 +355,7 @@ export class TodoDetailPanel {
 
         <div class="actions">
             <button class="btn-secondary" id="toggle-btn">${toggleBtnText}</button>
+            <button class="btn-primary" id="focus-btn" style="background-color: var(--vscode-charts-blue);">🎯 Start Focus</button>
             <button class="btn-primary" id="edit-btn">Edit</button>
             <button class="btn-danger" id="delete-btn">Delete</button>
         </div>
@@ -358,6 +368,7 @@ export class TodoDetailPanel {
         }
         
         document.getElementById('toggle-btn').addEventListener('click', () => sendMessage('toggle'));
+        document.getElementById('focus-btn').addEventListener('click', () => sendMessage('startFocus'));
         document.getElementById('edit-btn').addEventListener('click', () => sendMessage('edit'));
         document.getElementById('delete-btn').addEventListener('click', () => sendMessage('delete'));
     </script>

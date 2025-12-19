@@ -5,13 +5,14 @@ import * as vscode from 'vscode';
 import * as commands from './commands';
 import { ITodo, TodoPriority } from './models';
 import { CodeTodoProvider, TodoItem, TodoTreeProvider } from './providers';
-import { TodoStorageService, UserProfileService } from './services';
+import { TodoStorageService, UserProfileService, FocusSessionService } from './services';
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, your extension "personal-todo-list" is now active!');
 
 	const storage = new TodoStorageService(context);
 	const profileService = new UserProfileService(context);
+	const focusService = new FocusSessionService(context);
 	const todoProvider = new TodoTreeProvider(storage);
 	const codeTodoProvider = new CodeTodoProvider(context.extensionUri);
 	
@@ -108,13 +109,29 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.commands.registerCommand('personal-todo-list.refreshCodeTodos', () => {
 			codeTodoProvider.refresh();
+		}),
+
+		// Focus Session Commands
+		vscode.commands.registerCommand('personal-todo-list.startFocusSession', (item: TodoItem) => {
+			commands.startFocusSession(item, focusService, storage, todoProvider);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.stopFocusSession', () => {
+			commands.stopFocusSession(focusService, storage, todoProvider);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.viewFocusStats', (item: TodoItem) => {
+			commands.viewFocusStats(context.extensionUri, item, focusService, storage);
 		})
 	);
 
-	// Status Bar Item
+	// Status Bar Item for Todo Count
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBarItem.command = 'personal-todo-list.focusView';
 	context.subscriptions.push(statusBarItem);
+
+	// Status Bar Item for Active Focus Session
+	const focusStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 101);
+	focusStatusBarItem.command = 'personal-todo-list.stopFocusSession';
+	context.subscriptions.push(focusStatusBarItem);
 
 	const updateStatusBar = () => {
 		const todos = storage.getTodos();
@@ -131,6 +148,38 @@ export function activate(context: vscode.ExtensionContext) {
 	// Update on changes
 	todoProvider.onDidChangeTreeData(() => {
 		updateStatusBar();
+	});
+
+	// Update focus status bar
+	const updateFocusStatusBar = () => {
+		const activeSession = focusService.getActiveFocusSession();
+		
+		if (!activeSession) {
+			focusStatusBarItem.hide();
+			return;
+		}
+
+		// Get todo title
+		const todos = storage.getTodos();
+		const todo = todos.find(t => t.id === activeSession.todoId);
+		const todoTitle = todo ? todo.title : 'Task';
+
+		// Format remaining time
+		const minutes = Math.floor(activeSession.remainingTime / 60000);
+		const seconds = Math.floor((activeSession.remainingTime % 60000) / 1000);
+		const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+		focusStatusBarItem.text = `$(watch) ${timeStr} - ${todoTitle}`;
+		focusStatusBarItem.tooltip = 'Click to stop focus session';
+		focusStatusBarItem.show();
+	};
+
+	// Initial focus status update
+	updateFocusStatusBar();
+
+	// Listen to focus session updates
+	focusService.onSessionUpdate(() => {
+		updateFocusStatusBar();
 	});
 
 	// Register focus command
@@ -190,4 +239,7 @@ function showPendingTasksAlert(storage: TodoStorageService, treeView: vscode.Tre
 	});
 }
 
-export function deactivate() {}
+export function deactivate() {
+	// Cleanup focus session service
+	// Note: The service will be disposed automatically via context.subscriptions
+}

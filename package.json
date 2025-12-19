@@ -2,7 +2,7 @@
   "name": "personal-todo-list",
   "displayName": "VinTo",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.80.0"
@@ -63,6 +63,16 @@
           "type": "string",
           "default": "{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml}",
           "description": "Glob pattern for files to exclude from scanning"
+        },
+        "personal-todo-list.focusSession.defaultDuration": {
+          "type": "number",
+          "default": 25,
+          "description": "Default focus session duration in minutes"
+        },
+        "personal-todo-list.focusSession.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications when focus sessions complete"
         }
       }
     },
@@ -173,6 +183,21 @@
         "command": "personal-todo-list.refreshCodeTodos",
         "title": "VinTo: Refresh Code TODOs",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "personal-todo-list.startFocusSession",
+        "title": "Start Focus Session",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "personal-todo-list.stopFocusSession",
+        "title": "VinTo: Stop Focus Session",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "personal-todo-list.viewFocusStats",
+        "title": "View Focus Statistics",
+        "icon": "$(graph)"
       }
     ],
     "menus": {
@@ -238,6 +263,16 @@
           "command": "personal-todo-list.duplicateTodo",
           "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
           "group": "2_actions"
+        },
+        {
+          "command": "personal-todo-list.startFocusSession",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
+          "group": "3_focus"
+        },
+        {
+          "command": "personal-todo-list.viewFocusStats",
+          "when": "view == personal-todo-list.todoView && viewItem =~ /todo-item/",
+          "group": "3_focus"
         }
       ],
       "personal-todo-list.prioritySubmenu": [
