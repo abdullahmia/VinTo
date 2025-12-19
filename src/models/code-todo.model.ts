@@ -5,7 +5,7 @@ export interface CodeTodoItem {
   range: vscode.Range;
   line: number;
   text: string;
-  tag: string; // TODO, FIXME, etc.
+  tag: string;
 }
 
 export interface CodeTodoFile {
