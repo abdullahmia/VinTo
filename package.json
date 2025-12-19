@@ -2,7 +2,7 @@
   "name": "personal-todo-list",
   "displayName": "VinTo",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.80.0"
