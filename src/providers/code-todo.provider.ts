@@ -1,20 +1,52 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CodeTodoFile, CodeTodoItem } from '../models/code-todo.model';
+
+const BINARY_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf', '.zip', '.tar', '.gz', '.7z',
+  '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db', '.sqlite',
+  '.ttf', '.otf', '.woff', '.woff2', '.eot',
+  '.mp3', '.mp4', '.wav', '.mov', '.avi',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'
+]);
+
+const NON_HUMAN_FILES = new Set([
+  'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+  'tsconfig.json', 'package.json', '.eslintrc.json', '.eslintrc.js', '.prettierrc',
+  'LICENSE', 'CHANGELOG.md'
+]);
 
 export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | CodeTodoItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<CodeTodoFile | CodeTodoItem | undefined | null | void> = new vscode.EventEmitter<CodeTodoFile | CodeTodoItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<CodeTodoFile | CodeTodoItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
   private todos: CodeTodoFile[] = [];
+  private isLoading: boolean = false;
 
   constructor() {
     this.refresh();
   }
 
   refresh(): void {
-    this.scanWorkspace().then(() => {
+    if (this.isLoading) {
+      return;
+    }
+
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Scanning codebase for TODOs...",
+      cancellable: false
+    }, async (progress) => {
+      this.isLoading = true;
       this._onDidChangeTreeData.fire();
+      
+      try {
+        await this.scanWorkspace();
+      } finally {
+        this.isLoading = false;
+        this._onDidChangeTreeData.fire();
+      }
     });
   }
 
@@ -31,9 +63,9 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       treeItem.contextValue = 'codeTodoItem';
       
       // Icon based on tag
-      if (element.tag.toUpperCase() === 'FIXME' || element.tag.toUpperCase() === 'BUG') {
+      if (element?.tag?.toUpperCase() === 'FIXME' || element?.tag?.toUpperCase() === 'BUG') {
         treeItem.iconPath = new vscode.ThemeIcon('bug');
-      } else if (element.tag.toUpperCase() === 'HACK') {
+      } else if (element?.tag?.toUpperCase() === 'HACK') {
         treeItem.iconPath = new vscode.ThemeIcon('tools');
       } else {
         treeItem.iconPath = new vscode.ThemeIcon('checklist');
@@ -55,7 +87,11 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
     }
   }
 
-  getChildren(element?: CodeTodoFile | CodeTodoItem): vscode.ProviderResult<CodeTodoFile[] | CodeTodoItem[]> {
+  getChildren(element?: CodeTodoFile | CodeTodoItem): vscode.ProviderResult<any[]> {
+    if (this.isLoading && !element) {
+      return [{ label: 'Scanning codebase...', isLoading: true }];
+    }
+
     if (!element) {
       // Root: return files
       if (this.todos.length === 0) {
@@ -68,68 +104,115 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
     }
     return [];
   }
-
   private async scanWorkspace(): Promise<void> {
     const config = vscode.workspace.getConfiguration('personal-todo-list.codeTodos');
-    const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG', 'HACK', 'XXX']);
-    const include = config.get<string>('include', '**/*');
-    const exclude = config.get<string>('exclude', '{**/node_modules/**,**/dist/**,**/out/**,**/.git/**}');
+    const rawTags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG', 'HACK', 'XXX']);
+    const tags = rawTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
     
-    // Construct regex
-    const tagPattern = tags.join('|');
-    // Regex explanation:
-    // (//|#|<!--|/\*)  -> Match comment start (simplified)
-    // We want to be lenient. Let's match the TAG followed by colon or space
-    // But we should ensure it looks like a comment.
-    // However, languages define comments differently. 
-    // The user requested scanning for patterns like "// TODO", "# TODO".
-    // A broader regex that catches the Tag in a comment-like structure:
-    // We will look for the tag, and ensure it's preceded by comment markers if possible.
-    // Or simpler: Just look for the tag and assume if it's in code it's a comment? 
-    // No, matching "TODO" in a string "print('TODO')" is bad.
-    // But perfect parsing without language support is hard.
-    // Let's stick to the patterns the user requested:
-    // //, #, <!--, /*
-    
-    const regex = new RegExp(`(//|#|<!--|/\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
+    if (tags.length === 0) {
+      this.todos = [];
+      return;
+    }
 
+    const include = config.get<string>('include', '**/*');
+    const exclude = config.get<string>('exclude', '{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**}');
+    
+    // Read .gitignore
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const gitignoreRegexes: RegExp[] = [];
+    
+    if (workspaceFolders) {
+      for (const folder of workspaceFolders) {
+        const gitignorePath = path.join(folder.uri.fsPath, '.gitignore');
+        if (fs.existsSync(gitignorePath)) {
+          try {
+            const content = fs.readFileSync(gitignorePath, 'utf8');
+            const patterns = content.split(/\r?\n/)
+              .map(line => line.trim())
+              .filter(line => line && !line.startsWith('#'));
+            
+            for (const pattern of patterns) {
+              let regexPattern = pattern
+                .replace(/\./g, '\\.')
+                .replace(/\*/g, '.*')
+                .replace(/\?/g, '.');
+              
+              if (pattern.endsWith('/')) {
+                regexPattern = regexPattern + '.*';
+              }
+              gitignoreRegexes.push(new RegExp(`(^|/|\\\\)${regexPattern}($|/|\\\\)`, 'i'));
+            }
+          } catch (e) {
+            console.error(`Error reading .gitignore: ${e}`);
+          }
+        }
+      }
+    }
+
+    const shouldIgnore = (uri: vscode.Uri) => {
+      const fsPath = uri.fsPath;
+      const fileName = path.basename(fsPath);
+      const ext = path.extname(fsPath).toLowerCase();
+
+      if (BINARY_EXTENSIONS.has(ext)) return true;
+      if (NON_HUMAN_FILES.has(fileName)) return true;
+
+      const relativePath = workspaceFolders ? path.relative(workspaceFolders[0].uri.fsPath, fsPath) : fsPath;
+      for (const regex of gitignoreRegexes) {
+        if (regex.test(relativePath) || regex.test(fsPath)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    
+    const tagPattern = tags.join('|');
+    const regex = new RegExp(`(//|#|<!--|/\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
     const todoMap = new Map<string, CodeTodoFile>();
 
     const files = await vscode.workspace.findFiles(include, exclude);
+    
+    // Parallel processing with concurrency limit
+    const CONCURRENCY_LIMIT = 20;
+    for (let i = 0; i < files.length; i += CONCURRENCY_LIMIT) {
+      const chunk = files.slice(i, i + CONCURRENCY_LIMIT);
+      await Promise.all(chunk.map(async (fileUri) => {
+        if (shouldIgnore(fileUri)) {
+          return;
+        }
 
-    for (const fileUri of files) {
-      try {
-        const doc = await vscode.workspace.openTextDocument(fileUri);
-        const fileEntry: CodeTodoFile = {
-            resourceUri: fileUri,
-            items: []
-        };
+        try {
+          const doc = await vscode.workspace.openTextDocument(fileUri);
+          const items: CodeTodoItem[] = [];
 
-        for (let i = 0; i < doc.lineCount; i++) {
-            const line = doc.lineAt(i);
+          for (let lineIndex = 0; lineIndex < doc.lineCount; lineIndex++) {
+            const line = doc.lineAt(lineIndex);
             const match = regex.exec(line.text);
             
-            if (match) {
-                const tag = match[2];
-                const text = match[3].trim();
-                
-                fileEntry.items.push({
-                    file: fileUri,
-                    range: line.range,
-                    line: i + 1,
-                    text: text,
-                    tag: tag.toUpperCase()
-                });
+            if (match && match[2] && match[3] !== undefined) {
+              items.push({
+                file: fileUri,
+                range: line.range,
+                line: lineIndex + 1,
+                text: (match[3] || '').trim(),
+                tag: match[2].toUpperCase()
+              });
             }
-        }
+          }
 
-        if (fileEntry.items.length > 0) {
-            todoMap.set(fileUri.toString(), fileEntry);
+          if (items.length > 0) {
+            todoMap.set(fileUri.toString(), {
+              resourceUri: fileUri,
+              items: items
+            });
+          }
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          if (!errorMessage.includes('File seems to be binary')) {
+            console.error(`Error reading file ${fileUri.fsPath}:`, err);
+          }
         }
-
-      } catch (err) {
-        console.error(`Error reading file ${fileUri.fsPath}:`, err);
-      }
+      }));
     }
 
     this.todos = Array.from(todoMap.values()).sort((a, b) => {

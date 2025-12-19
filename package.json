@@ -59,7 +59,7 @@
         },
         "personal-todo-list.codeTodos.exclude": {
           "type": "string",
-          "default": "**/node_modules/**,**/dist/**,**/out/**,**/.git/**",
+          "default": "{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml}",
           "description": "Glob pattern for files to exclude from scanning"
         }
       }
