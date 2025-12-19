@@ -302,7 +302,7 @@ export class ProfileSetupPanel {
         ${!isEdit ? `
         <div class="welcome-header">
             <div class="icon">👋</div>
-            <h1>Welcome to Personal Todo List!</h1>
+            <h1>Welcome to VinTo</h1>
             <p>Let's get started by setting up your profile</p>
         </div>
         ` : `
