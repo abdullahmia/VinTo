@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.0
+
+### Minor Changes
+
+- Add Focus Mode feature with Pomodoro-style session tracking, real-time countdown timer, and interactive Chart.js statistics webview. Includes customizable durations, focus time tracking per task, and new commands for starting/stopping sessions and viewing statistics.
+
 ## 1.3.1
 
 ### Patch Changes
