@@ -1,2 +1,2 @@
-node scripts/prompt-changeset.js
+npm run changeset
 npm run lint
