@@ -2,7 +2,7 @@
   "name": "personal-todo-list",
   "displayName": "VinTo",
   "description": "A personalized todo list manager for VS Code with priority tags and filters",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.80.0"
@@ -40,6 +40,27 @@
           "type": "boolean",
           "default": true,
           "description": "Show alert notification for pending tasks when VS Code opens"
+        },
+        "personal-todo-list.codeTodos.tags": {
+          "type": "array",
+          "default": [
+            "TODO",
+            "FIXME",
+            "BUG",
+            "HACK",
+            "XXX"
+          ],
+          "description": "Tags to search for in comments (e.g. TODO, FIXME)"
+        },
+        "personal-todo-list.codeTodos.include": {
+          "type": "string",
+          "default": "**/*",
+          "description": "Glob pattern for files to include in scanning"
+        },
+        "personal-todo-list.codeTodos.exclude": {
+          "type": "string",
+          "default": "{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml}",
+          "description": "Glob pattern for files to exclude from scanning"
         }
       }
     },
@@ -57,6 +78,11 @@
         {
           "id": "personal-todo-list.todoView",
           "name": "Personal Todo List",
+          "icon": "assets/icon.svg"
+        },
+        {
+          "id": "personal-todo-list.codeTodoView",
+          "name": "Code TODOs",
           "icon": "assets/icon.svg"
         }
       ]
@@ -140,6 +166,11 @@
         "command": "personal-todo-list.showProfileOverview",
         "title": "VinTo: Show Profile Overview",
         "icon": "$(graph)"
+      },
+      {
+        "command": "personal-todo-list.refreshCodeTodos",
+        "title": "VinTo: Refresh Code TODOs",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -168,6 +199,11 @@
           "command": "personal-todo-list.clearSearch",
           "when": "view == personal-todo-list.todoView && personal-todo-list.isSearching",
           "group": "navigation@5"
+        },
+        {
+          "command": "personal-todo-list.refreshCodeTodos",
+          "when": "view == personal-todo-list.codeTodoView",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [

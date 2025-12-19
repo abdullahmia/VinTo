@@ -4,7 +4,7 @@ moduleAlias.addAlias('@', __dirname);
 import * as vscode from 'vscode';
 import * as commands from './commands';
 import { ITodo, TodoPriority } from './models';
-import { TodoItem, TodoTreeProvider } from './providers';
+import { CodeTodoProvider, TodoItem, TodoTreeProvider } from './providers';
 import { TodoStorageService, UserProfileService } from './services';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -13,10 +13,23 @@ export function activate(context: vscode.ExtensionContext) {
 	const storage = new TodoStorageService(context);
 	const profileService = new UserProfileService(context);
 	const todoProvider = new TodoTreeProvider(storage);
+	const codeTodoProvider = new CodeTodoProvider();
 	
 	const treeView = vscode.window.createTreeView('personal-todo-list.todoView', {
 		treeDataProvider: todoProvider
 	});
+
+	// Code TODOs View
+	const codeTodoCodeView = vscode.window.createTreeView('personal-todo-list.codeTodoView', {
+		treeDataProvider: codeTodoProvider
+	});
+	
+	// Refresh Code TODOs on file save
+	context.subscriptions.push(
+		vscode.workspace.onDidSaveTextDocument(() => {
+			codeTodoProvider.refresh();
+		})
+	);
 
 	treeView.onDidChangeCheckboxState(e => {
 		for (const [item, state] of e.items) {
@@ -80,8 +93,12 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('personal-todo-list.viewProfile', () => {
 			commands.viewProfile(context.extensionUri, profileService, storage);
 		}),
+
 		vscode.commands.registerCommand('personal-todo-list.showProfileOverview', () => {
 			commands.showProfileOverview(context.extensionUri, profileService, storage);
+		}),
+		vscode.commands.registerCommand('personal-todo-list.refreshCodeTodos', () => {
+			codeTodoProvider.refresh();
 		})
 	);
 
