@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.3
+
+### Patch Changes
+
+- resolve clear install issues on the ci
+
 ## 1.4.1
 
 ### Patch Changes
