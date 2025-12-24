@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.4
+
+### Patch Changes
+
+- Improved TODO Detection Fixed an issue where TODOs inside multi-line block comments (e.g., lines starting with \*) were being ignored. The scanner now correctly identifies tags like TODO and FIXME in all comment styles, ensuring no tasks are missed in your codebase.
+
 ## 1.4.3
 
 ### Patch Changes

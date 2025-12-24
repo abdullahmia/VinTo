@@ -64,7 +64,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       }, async (progress) => {
         this.isLoading = true;
         this._onDidChangeTreeData.fire();
-        
+
         try {
           await this.scanWorkspace();
         } finally {
@@ -87,7 +87,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       // It's a todo item
       const treeItem = new vscode.TreeItem(element.text, vscode.TreeItemCollapsibleState.None);
       treeItem.contextValue = 'codeTodoItem';
-      
+
       // Icon based on tag
       if (element?.tag?.toUpperCase() === 'FIXME' || element?.tag?.toUpperCase() === 'BUG') {
         treeItem.iconPath = new vscode.ThemeIcon('bug');
@@ -107,7 +107,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
           }
         ]
       };
-      
+
       treeItem.tooltip = `${element.tag} at Line ${element.line}: ${element.text}`;
       return treeItem;
     }
@@ -188,7 +188,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
 
     const iconName = extensionMap[ext] || ext;
     const iconFileName = `file_type_${iconName}.svg`;
-    
+
     const fullPath = path.join(this.extensionUri.fsPath, 'assets', 'icons', iconFileName);
     if (fs.existsSync(fullPath)) {
       return vscode.Uri.file(fullPath);
@@ -206,13 +206,13 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
     const rawTags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG', 'HACK', 'XXX']);
     const tags = rawTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
     const tagPattern = tags.length > 0 ? tags.join('|') : 'TODO|FIXME';
-    return new RegExp(`(//|#|<!--|/\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
+    return new RegExp(`(//|#|<!--|/\\*|\\*)\\s*(${tagPattern})[:\\s]*(.*)`, 'i');
   }
 
   private async getIgnoreRegexes(): Promise<RegExp[]> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const gitignoreRegexes: RegExp[] = [];
-    
+
     if (workspaceFolders) {
       for (const folder of workspaceFolders) {
         const gitignorePath = path.join(folder.uri.fsPath, '.gitignore');
@@ -222,13 +222,13 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
             const patterns = content.split(/\r?\n/)
               .map(line => line.trim())
               .filter(line => line && !line.startsWith('#'));
-            
+
             for (const pattern of patterns) {
               let regexPattern = pattern
                 .replace(/\./g, '\\.')
                 .replace(/\*/g, '.*')
                 .replace(/\?/g, '.');
-              
+
               if (pattern.endsWith('/')) {
                 regexPattern = regexPattern + '.*';
               }
@@ -254,7 +254,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
     const regexes = ignoreRegexes || await this.getIgnoreRegexes();
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const relativePath = workspaceFolders ? path.relative(workspaceFolders[0].uri.fsPath, fsPath) : fsPath;
-    
+
     for (const regex of regexes) {
       if (regex.test(relativePath) || regex.test(fsPath)) {
         return true;
@@ -277,7 +277,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
       for (let lineIndex = 0; lineIndex < doc.lineCount; lineIndex++) {
         const line = doc.lineAt(lineIndex);
         const match = regex.exec(line.text);
-        
+
         if (match && match[2] && match[3] !== undefined) {
           items.push({
             file: uri,
@@ -310,10 +310,10 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
     const config = vscode.workspace.getConfiguration('personal-todo-list.codeTodos');
     const include = config.get<string>('include', '**/*');
     const exclude = config.get<string>('exclude', '{**/node_modules/**,**/dist/**,**/out/**,**/.git/**,**/build/**,**/.vscode/**,**/package-lock.json,**/yarn.lock,**/pnpm-lock.yaml}');
-    
+
     const ignoreRegexes = await this.getIgnoreRegexes();
     const regex = this.getRegex();
-    
+
     const files = await vscode.workspace.findFiles(include, exclude);
     const newTodoMap = new Map<string, CodeTodoFile>();
 
@@ -332,7 +332,7 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
           for (let lineIndex = 0; lineIndex < doc.lineCount; lineIndex++) {
             const line = doc.lineAt(lineIndex);
             const match = regex.exec(line.text);
-            
+
             if (match && match[2] && match[3] !== undefined) {
               items.push({
                 file: fileUri,
