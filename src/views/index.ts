@@ -3,4 +3,7 @@ export * from './profile-setup.webview';
 export * from './todo-detail.webview';
 export * from './todo-panel.webview';
 export * from './focus-stats.webview';
-
+export * from './todo-tree-provider';
+export * from './code-todo.provider';
+export * from './items/todo-item';
+export * from './items/todo-group-item';

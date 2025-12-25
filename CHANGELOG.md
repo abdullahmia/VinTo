@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.5
+
+### Patch Changes
+
+- reorganize folder structure and improve separation of concerns
+
 ## 1.4.4
 
 ### Patch Changes

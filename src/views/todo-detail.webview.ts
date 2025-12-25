@@ -1,5 +1,5 @@
 import { ITodo } from '@/models';
-import { TodoTreeProvider } from '@/providers';
+import { TodoTreeProvider } from './todo-tree-provider';
 import { TodoStorageService } from '@/services';
 import * as vscode from 'vscode';
 import { TodoPanel } from './todo-panel.webview';
@@ -25,7 +25,7 @@ export class TodoDetailPanel {
                 switch (message.command) {
                     case 'edit':
                         TodoPanel.createOrShow(this._extensionUri, this.storage, this.provider, this._todo);
-                        this.dispose(); 
+                        this.dispose();
                         return;
                     case 'delete':
                         this._deleteTodo();
@@ -124,11 +124,11 @@ export class TodoDetailPanel {
             if (!t) {
                 return `<!DOCTYPE html><html><body><h1>Error: No Todo Data</h1></body></html>`;
             }
-            
+
             // Format Dates
             const createdStr = new Date(t.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-            const dueStr = t.dueDate 
-                ? new Date(t.dueDate).toLocaleDateString(undefined, { dateStyle: 'medium' }) 
+            const dueStr = t.dueDate
+                ? new Date(t.dueDate).toLocaleDateString(undefined, { dateStyle: 'medium' })
                 : 'No due date';
 
             // Badge Colors
@@ -137,20 +137,20 @@ export class TodoDetailPanel {
                 'medium': 'var(--vscode-charts-yellow)',
                 'low': 'var(--vscode-charts-green)'
             };
-            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)'); 
+            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)');
 
             // Tags
             let tagsHtml = '';
             if (t.tags && t.tags.length > 0) {
-                tagsHtml = '<div class="tags-container">' + 
-                    t.tags.map(tag => `<span class="tag">${tag}</span>`).join('') + 
+                tagsHtml = '<div class="tags-container">' +
+                    t.tags.map(tag => `<span class="tag">${tag}</span>`).join('') +
                     '</div>';
             }
 
             const statusText = t.isCompleted ? 'Completed' : 'Pending';
             const statusClass = t.isCompleted ? 'status-completed' : 'status-pending';
             const toggleBtnText = t.isCompleted ? 'Mark as Incomplete' : 'Mark as Complete';
-            
+
             const nonce = this._getNonce();
 
             return `<!DOCTYPE html>

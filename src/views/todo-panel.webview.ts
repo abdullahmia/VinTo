@@ -1,5 +1,5 @@
 import { ITodo, TodoPriority } from '@/models';
-import { TodoTreeProvider } from '@/providers';
+import { TodoTreeProvider } from './todo-tree-provider';
 import { TodoStorageService } from '@/services';
 import { generateUUID } from '@/utils';
 import * as vscode from 'vscode';
@@ -98,7 +98,7 @@ export class TodoPanel {
         }
 
         const newTodo: ITodo = {
-            id: generateUUID(), 
+            id: generateUUID(),
             title,
             description,
             priority: priority as TodoPriority,
@@ -119,7 +119,7 @@ export class TodoPanel {
 
         const { title, description, priority, dueDate, tags } = data;
 
-         if (!title) {
+        if (!title) {
             vscode.window.showErrorMessage('Title is required');
             return;
         }
@@ -148,7 +148,7 @@ export class TodoPanel {
     private _getHtmlForWebview() {
         const todo = this._todoToEdit;
         const isEdit = !!todo;
-        
+
         const titleVal = isEdit ? todo.title : '';
         const descVal = isEdit ? (todo.description || '') : ''; // Quill will handle this
         const priorityVal = isEdit ? todo.priority : 'medium';
