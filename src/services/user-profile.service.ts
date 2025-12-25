@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 export class UserProfileService {
 	private static readonly KEY = 'personal-todo-list.userProfile';
 
-	constructor(private context: vscode.ExtensionContext) {}
+	constructor(private context: vscode.ExtensionContext) { }
 
 	/**
 	 * Get the user profile from global state
@@ -25,6 +25,11 @@ export class UserProfileService {
 	 */
 	hasProfile(): boolean {
 		return this.getProfile() !== undefined;
+	}
+
+	hasCompletedOnboarding(requiredVersion: number = 1): boolean {
+		const profile = this.getProfile();
+		return !!profile && (profile.onboardingVersion || 0) >= requiredVersion;
 	}
 
 	/**

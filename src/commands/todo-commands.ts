@@ -19,9 +19,24 @@ export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage
 
 export async function toggleTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	const todo = item.todo;
+	const statuses = storage.getStatuses();
+	const currentStatus = statuses.find(s => s.id === todo.status);
+
+	let targetStatusId = todo.status;
+
+	if (currentStatus?.type === 'completed') {
+		// Switch to default active
+		const defaultActive = statuses.find(s => s.type === 'active' && s.isDefault) || statuses.find(s => s.type === 'active');
+		if (defaultActive) targetStatusId = defaultActive.id;
+	} else {
+		// Switch to default completed
+		const defaultCompleted = statuses.find(s => s.type === 'completed' && s.isDefault) || statuses.find(s => s.type === 'completed');
+		if (defaultCompleted) targetStatusId = defaultCompleted.id;
+	}
+
 	const updatedTodo: ITodo = {
 		...todo,
-		isCompleted: !todo.isCompleted
+		status: targetStatusId
 	};
 	await storage.updateTodo(updatedTodo);
 	provider.refresh();
@@ -147,10 +162,14 @@ export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.T
 	}
 }
 
-export async function setupProfile(extensionUri: vscode.Uri, profileService: import('@/services').UserProfileService) {
-	const existingProfile = profileService.getProfile();
-	const { ProfileSetupPanel } = await import('@/views');
-	ProfileSetupPanel.createOrShow(extensionUri, profileService, existingProfile);
+export async function setupProfile(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	storage: import('@/services').TodoStorageService
+) {
+	const { UserOnboarding } = await import('@/views');
+	const profile = profileService.getProfile();
+	UserOnboarding.createOrShow(extensionUri, profileService, storage, profile);
 }
 
 export async function viewProfile(
@@ -169,4 +188,29 @@ export async function showProfileOverview(
 ) {
 	const { ProfileOverviewPanel } = await import('@/views');
 	ProfileOverviewPanel.createOrShow(extensionUri, profileService, todoStorage);
+}
+
+export async function openSettings(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	storage: import('@/services').TodoStorageService
+) {
+	const { SettingsPanel } = await import('@/views');
+	SettingsPanel.createOrShow(extensionUri, profileService, storage);
+}
+
+export async function resetProfile(
+	profileService: import('@/services').UserProfileService
+) {
+	const confirm = await vscode.window.showWarningMessage(
+		'This will reset your profile and trigger onboarding again. Continue?',
+		{ modal: true },
+		'Reset'
+	);
+
+	if (confirm === 'Reset') {
+		await profileService.clearProfile();
+		vscode.window.showInformationMessage('Profile reset! Please reload the window to start onboarding.');
+		vscode.commands.executeCommand('workbench.action.reloadWindow');
+	}
 }

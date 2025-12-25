@@ -1,4 +1,4 @@
-import { ITodo, TodoPriority } from '@/models';
+import { ITodo, TodoPriority, DEFAULT_STATUSES } from '@/models';
 import { TodoTreeProvider } from './todo-tree-provider';
 import { TodoStorageService } from '@/services';
 import { generateUUID } from '@/utils';
@@ -19,6 +19,9 @@ export class TodoPanel {
         this._todoToEdit = todoToEdit;
 
         this._update();
+
+        // Listen for status updates to refresh standard views if needed
+        // (Not implemented yet, but good practice)
 
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -95,7 +98,7 @@ export class TodoPanel {
     }
 
     private async _addTodo(data: any) {
-        const { title, descriptionHtml, isTiptap, priority, dueDate, tags } = data;
+        const { title, descriptionHtml, isTiptap, priority, dueDate, tags, status } = data;
 
         if (!title) {
             vscode.window.showErrorMessage('Title is required');
@@ -110,12 +113,19 @@ export class TodoPanel {
             parsedDate = Date.parse(dueDate);
         }
 
+        // Get default status if not provided (though UI should provide it)
+        let statusId = status;
+        if (!statusId) {
+            const statuses = this.storage.getStatuses();
+            statusId = statuses.find(s => s.isDefault)?.id || 'pending';
+        }
+
         const newTodo: ITodo = {
             id: generateUUID(),
             title,
             description: finalDescription,
             priority: priority as TodoPriority,
-            isCompleted: false,
+            status: statusId,
             createdAt: Date.now(),
             dueDate: parsedDate,
             tags: tags ? tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : undefined
@@ -130,7 +140,7 @@ export class TodoPanel {
     private async _updateTodo(data: any) {
         if (!this._todoToEdit) return;
 
-        const { title, descriptionHtml, isTiptap, priority, dueDate, tags } = data;
+        const { title, descriptionHtml, isTiptap, priority, dueDate, tags, status } = data;
 
         if (!title) {
             vscode.window.showErrorMessage('Title is required');
@@ -151,6 +161,7 @@ export class TodoPanel {
             title,
             description: finalDescription,
             priority: priority as TodoPriority,
+            status: status || this._todoToEdit.status,
             dueDate: parsedDate,
             tags: tags ? tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : undefined
         };
@@ -206,9 +217,15 @@ export class TodoPanel {
         const priorityVal = isEdit ? todo.priority : 'medium';
         const dateVal = isEdit && todo.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '';
         const tagsVal = isEdit && todo.tags ? todo.tags.join(', ') : '';
+        const statusVal = isEdit ? todo.status : '';
 
         const submitBtnText = isEdit ? 'Update Todo' : 'Add Todo';
         const command = isEdit ? 'updateTodo' : 'addTodo';
+
+        const statuses = this.storage.getStatuses();
+        let statusOptions = statuses.map(s =>
+            `<option value="${s.id}" ${statusVal === s.id ? 'selected' : (!isEdit && s.isDefault ? 'selected' : '')}>${s.label}</option>`
+        ).join('');
 
         const nonce = this._getNonce();
 
@@ -542,7 +559,7 @@ export class TodoPanel {
                 <input type="text" id="title" name="title" placeholder="What needs to be done?" required autocomplete="off" value="${titleVal}">
             </div>
 
-            <!-- Priority & Due Date Row -->
+            <!-- Priority & Status Row -->
             <div class="row">
                 <div class="form-group col">
                     <label for="priority">Priority</label>
@@ -554,9 +571,17 @@ export class TodoPanel {
                 </div>
 
                 <div class="form-group col">
-                    <label for="dueDate">Due Date</label>
-                    <input type="text" id="dueDate" name="dueDate" placeholder="Select date..." value="${dateVal}">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        ${statusOptions}
+                    </select>
                 </div>
+            </div>
+
+            <!-- Due Date Row -->
+             <div class="form-group">
+                <label for="dueDate">Due Date</label>
+                <input type="text" id="dueDate" name="dueDate" placeholder="Select date..." value="${dateVal}">
             </div>
 
             <!-- Tags -->
@@ -743,6 +768,7 @@ export class TodoPanel {
             }
 
             const priority = document.getElementById('priority').value;
+            const status = document.getElementById('status').value;
             const dueDate = document.getElementById('dueDate').value;
             const tags = document.getElementById('tags').value;
 
@@ -753,6 +779,7 @@ export class TodoPanel {
                     descriptionHtml,
                     isTiptap: currentMode === 'tiptap',
                     priority,
+                    status,
                     dueDate,
                     tags
                 }

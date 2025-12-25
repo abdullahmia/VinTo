@@ -21,7 +21,9 @@ export const COMMANDS = {
     START_FOCUS_SESSION: 'personal-todo-list.startFocusSession',
     STOP_FOCUS_SESSION: 'personal-todo-list.stopFocusSession',
     VIEW_FOCUS_STATS: 'personal-todo-list.viewFocusStats',
-    FOCUS_VIEW: 'personal-todo-list.focusView'
+    FOCUS_VIEW: 'personal-todo-list.focusView',
+    OPEN_SETTINGS: 'vinto.openSettings',
+    RESET_PROFILE: 'vinto.resetProfile'
 } as const;
 
 export const VIEWS = {

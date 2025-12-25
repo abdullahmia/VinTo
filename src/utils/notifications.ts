@@ -15,7 +15,11 @@ export function showPendingTasksAlert(storage: TodoStorageService, treeView: vsc
 
     // Count pending tasks
     const todos = storage.getTodos();
-    const pendingCount = todos.filter(t => !t.isCompleted).length;
+    const statuses = storage.getStatuses();
+    const pendingCount = todos.filter(t => {
+        const status = statuses.find(s => s.id === t.status);
+        return status ? status.type === 'active' : true;
+    }).length;
 
     if (pendingCount === 0) {
         return;
@@ -29,13 +33,10 @@ export function showPendingTasksAlert(storage: TodoStorageService, treeView: vsc
     vscode.window.showInformationMessage(
         message,
         'View Todos',
-        'Dismiss',
-        "Don't Show Again"
+        'Dismiss'
     ).then(selection => {
         if (selection === 'View Todos') {
             treeView.reveal(treeView.selection[0] || undefined, { focus: true });
-        } else if (selection === "Don't Show Again") {
-            config.update(CONFIG.SHOW_PENDING_TASKS_ALERT, false, vscode.ConfigurationTarget.Global);
         }
     });
 }

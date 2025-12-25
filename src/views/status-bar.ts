@@ -45,8 +45,12 @@ export class StatusBarManager {
 
     private updateTodoStatusBar() {
         const todos = this.storage.getTodos();
+        const statuses = this.storage.getStatuses();
         const total = todos.length;
-        const pending = todos.filter(t => !t.isCompleted).length;
+        const pending = todos.filter(t => {
+            const status = statuses.find(s => s.id === t.status);
+            return status ? status.type === 'active' : true;
+        }).length;
         this.todoStatusBarItem.text = `$(checklist) ${total} todos (${pending} pending)`;
         this.todoStatusBarItem.tooltip = 'Click to show Personal Todo List';
         this.todoStatusBarItem.show();
