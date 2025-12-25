@@ -162,10 +162,14 @@ export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.T
 	}
 }
 
-export async function setupProfile(extensionUri: vscode.Uri, profileService: import('@/services').UserProfileService) {
-	const existingProfile = profileService.getProfile();
+export async function setupProfile(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	storage: import('@/services').TodoStorageService
+) {
 	const { UserOnboarding } = await import('@/views');
-	UserOnboarding.createOrShow(extensionUri, profileService, existingProfile);
+	const profile = profileService.getProfile();
+	UserOnboarding.createOrShow(extensionUri, profileService, storage, profile);
 }
 
 export async function viewProfile(
@@ -193,4 +197,20 @@ export async function openSettings(
 ) {
 	const { SettingsPanel } = await import('@/views');
 	SettingsPanel.createOrShow(extensionUri, profileService, storage);
+}
+
+export async function resetProfile(
+	profileService: import('@/services').UserProfileService
+) {
+	const confirm = await vscode.window.showWarningMessage(
+		'This will reset your profile and trigger onboarding again. Continue?',
+		{ modal: true },
+		'Reset'
+	);
+
+	if (confirm === 'Reset') {
+		await profileService.clearProfile();
+		vscode.window.showInformationMessage('Profile reset! Please reload the window to start onboarding.');
+		vscode.commands.executeCommand('workbench.action.reloadWindow');
+	}
 }

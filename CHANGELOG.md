@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.6.0
+
+### Minor Changes
+
+- Implemented multi-step onboarding (Profile → Status Config) for better user setup experience. Enhanced Settings page with improved status management, confirmation dialogs, and automatic todo migration when deleting statuses. Fixed command palette search and settings UI bugs.
+
 ## 1.5.0
 
 ### Minor Changes

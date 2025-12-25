@@ -33,13 +33,10 @@ export function showPendingTasksAlert(storage: TodoStorageService, treeView: vsc
     vscode.window.showInformationMessage(
         message,
         'View Todos',
-        'Dismiss',
-        "Don't Show Again"
+        'Dismiss'
     ).then(selection => {
         if (selection === 'View Todos') {
             treeView.reveal(treeView.selection[0] || undefined, { focus: true });
-        } else if (selection === "Don't Show Again") {
-            config.update(CONFIG.SHOW_PENDING_TASKS_ALERT, false, vscode.ConfigurationTarget.Global);
         }
     });
 }

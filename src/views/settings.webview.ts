@@ -89,7 +89,6 @@ export class SettingsPanel {
             githubUsername: data.githubUsername
         });
         vscode.window.showInformationMessage('Profile updated');
-        this._update();
     }
 
     private async _saveStatus(data: any) {
@@ -115,7 +114,8 @@ export class SettingsPanel {
         }
 
         await this.storage.saveStatuses(newStatuses);
-        this._update();
+        this._updateStatusList();
+        vscode.window.showInformationMessage('Status saved successfully');
     }
 
     private async _deleteStatus(id: string) {
@@ -130,20 +130,40 @@ export class SettingsPanel {
 
         // Check if used by todos
         const todos = this.storage.getTodos();
-        const usedCount = todos.filter(t => t.status === id).length;
+        const affectedTodos = todos.filter(t => t.status === id);
+        const usedCount = affectedTodos.length;
 
+        // Confirmation dialog
+        const confirmMessage = usedCount > 0
+            ? `Delete "${status?.label}"? ${usedCount} todo(s) will be moved to the default status.`
+            : `Delete "${status?.label}"?`;
+
+        const confirm = await vscode.window.showWarningMessage(
+            confirmMessage,
+            { modal: true },
+            'Delete'
+        );
+
+        if (confirm !== 'Delete') {
+            return;
+        }
+
+        // Move affected todos to default status
         if (usedCount > 0) {
-            const confirm = await vscode.window.showWarningMessage(
-                `This status is used by ${usedCount} todos. They will be marked as "Unknown". Continue?`,
-                { modal: true },
-                'Delete'
-            );
-            if (confirm !== 'Delete') return;
+            const defaultStatus = statuses.find(s => s.isDefault && s.type === 'active');
+            if (defaultStatus) {
+                const updatedTodos = todos.map(t =>
+                    t.status === id ? { ...t, status: defaultStatus.id } : t
+                );
+                await this.storage.saveTodos(updatedTodos);
+            }
         }
 
         const newStatuses = statuses.filter(s => s.id !== id);
         await this.storage.saveStatuses(newStatuses);
-        this._update();
+        this._updateStatusList();
+
+        vscode.window.showInformationMessage(`Status "${status?.label}" deleted successfully`);
     }
 
     private async _resetStatuses() {
@@ -168,6 +188,15 @@ export class SettingsPanel {
         }
     }
 
+    private _updateStatusList() {
+        // Send updated statuses to webview without full page reload
+        const statuses = this.storage.getStatuses();
+        this._panel.webview.postMessage({
+            command: 'updateStatuses',
+            statuses: statuses
+        });
+    }
+
     private _update() {
         this._panel.webview.html = this._getHtmlForWebview();
     }
@@ -177,7 +206,8 @@ export class SettingsPanel {
         const statuses = this.storage.getStatuses();
         const nonce = this._getNonce();
 
-        const statusesJson = JSON.stringify(statuses);
+        // Properly escape JSON for HTML injection
+        const statusesJson = JSON.stringify(statuses).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -441,7 +471,7 @@ export class SettingsPanel {
 
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
-        const statuses = ${statusesJson};
+        let statuses = ${statusesJson};
         
         // Tabs
         document.querySelectorAll('.tab').forEach(t => {
@@ -477,13 +507,26 @@ export class SettingsPanel {
                         \${s.isDefault ? '<span class="status-type" style="color: var(--primary)">Default</span>' : ''}
                     </div>
                     <div class="status-actions">
-                        <button class="icon-btn" onclick="editStatus('\${s.id}')">✏️</button>
-                        \${!s.isDefault ? \`<button class="icon-btn" onclick="deleteStatus('\${s.id}')">🗑️</button>\` : ''}
+                        <button class="icon-btn edit-status-btn" data-status-id="\${s.id}">✏️</button>
+                        \${!s.isDefault ? \`<button class="icon-btn delete-status-btn" data-status-id="\${s.id}">🗑️</button>\` : ''}
                     </div>
                 </div>
             \`).join('');
         }
         renderStatuses();
+        
+        // Event delegation for edit and delete buttons
+        listContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('edit-status-btn')) {
+                const statusId = target.getAttribute('data-status-id');
+                const status = statuses.find(s => s.id === statusId);
+                if (status) openModal(status);
+            } else if (target.classList.contains('delete-status-btn')) {
+                const statusId = target.getAttribute('data-status-id');
+                vscode.postMessage({ command: 'deleteStatus', data: statusId });
+            }
+        });
         
         // Status Management
         const modal = document.getElementById('status-modal');
@@ -525,16 +568,6 @@ export class SettingsPanel {
             el.addEventListener('click', () => selectColor(el.dataset.color));
         });
         
-        // Global Edit/Delete handlers (attached to window for inline onclick)
-        window.editStatus = (id) => {
-            const status = statuses.find(s => s.id === id);
-            if (status) openModal(status);
-        };
-        
-        window.deleteStatus = (id) => {
-            vscode.postMessage({ command: 'deleteStatus', data: id });
-        };
-        
         statusForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const id = document.getElementById('status-id').value;
@@ -548,6 +581,15 @@ export class SettingsPanel {
                 }
             });
             closeModal();
+        });
+
+        // Listen for updates from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'updateStatuses') {
+                statuses = message.statuses;
+                renderStatuses();
+            }
         });
 
     </script>
