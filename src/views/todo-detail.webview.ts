@@ -1,8 +1,9 @@
 import { ITodo } from '@/models';
-import { TodoTreeProvider } from '@/providers';
+import { TodoTreeProvider } from './todo-tree-provider';
 import { TodoStorageService } from '@/services';
 import * as vscode from 'vscode';
 import { TodoPanel } from './todo-panel.webview';
+import { marked } from 'marked';
 
 export class TodoDetailPanel {
     public static currentPanel: TodoDetailPanel | undefined;
@@ -25,7 +26,7 @@ export class TodoDetailPanel {
                 switch (message.command) {
                     case 'edit':
                         TodoPanel.createOrShow(this._extensionUri, this.storage, this.provider, this._todo);
-                        this.dispose(); 
+                        this.dispose();
                         return;
                     case 'delete':
                         this._deleteTodo();
@@ -124,11 +125,11 @@ export class TodoDetailPanel {
             if (!t) {
                 return `<!DOCTYPE html><html><body><h1>Error: No Todo Data</h1></body></html>`;
             }
-            
+
             // Format Dates
             const createdStr = new Date(t.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-            const dueStr = t.dueDate 
-                ? new Date(t.dueDate).toLocaleDateString(undefined, { dateStyle: 'medium' }) 
+            const dueStr = t.dueDate
+                ? new Date(t.dueDate).toLocaleDateString(undefined, { dateStyle: 'medium' })
                 : 'No due date';
 
             // Badge Colors
@@ -137,21 +138,26 @@ export class TodoDetailPanel {
                 'medium': 'var(--vscode-charts-yellow)',
                 'low': 'var(--vscode-charts-green)'
             };
-            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)'); 
+            const pColor = (priorityColors[t.priority.toLowerCase()] || 'var(--foreground)');
 
             // Tags
             let tagsHtml = '';
             if (t.tags && t.tags.length > 0) {
-                tagsHtml = '<div class="tags-container">' + 
-                    t.tags.map(tag => `<span class="tag">${tag}</span>`).join('') + 
+                tagsHtml = '<div class="tags-container">' +
+                    t.tags.map(tag => `<span class="tag">${tag}</span>`).join('') +
                     '</div>';
             }
 
             const statusText = t.isCompleted ? 'Completed' : 'Pending';
             const statusClass = t.isCompleted ? 'status-completed' : 'status-pending';
             const toggleBtnText = t.isCompleted ? 'Mark as Incomplete' : 'Mark as Complete';
-            
+
             const nonce = this._getNonce();
+
+            // Render Markdown Description
+            const descriptionHtml = t.description
+                ? marked(t.description, { async: false })
+                : '<i>No description provided.</i>';
 
             return `<!DOCTYPE html>
 <html lang="en">
@@ -232,8 +238,15 @@ export class TodoDetailPanel {
             font-size: 1.1em;
             line-height: 1.6;
             margin-bottom: 30px;
-            /* white-space: pre-wrap; Removed for HTML content */
         }
+        .description h1, .description h2, .description h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .description h1 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+        .description h2 { font-size: 1.3em; }
+        .description h3 { font-size: 1.1em; }
         .description ul, .description ol {
             padding-left: 20px;
         }
@@ -242,6 +255,31 @@ export class TodoDetailPanel {
             padding-left: 10px;
             margin-left: 0;
             opacity: 0.8;
+            color: var(--secondary-text);
+        }
+        .description code {
+            font-family: var(--vscode-editor-font-family);
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .description pre {
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 16px;
+            border-radius: var(--radius);
+            overflow-x: auto;
+        }
+        .description pre code {
+            padding: 0;
+            background-color: transparent;
+        }
+        .description a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+        }
+        .description a:hover {
+            text-decoration: underline;
         }
 
         .info-grid {
@@ -350,7 +388,7 @@ export class TodoDetailPanel {
         </div>
 
         <div class="description">
-            ${t.description || '<i>No description provided.</i>'}
+            ${descriptionHtml}
         </div>
 
         <div class="actions">

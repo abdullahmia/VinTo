@@ -1,20 +1,20 @@
 import { ITodo, TodoPriority } from '@/models';
-import { TodoItem, TodoTreeProvider } from '@/providers';
+import { TodoItem, TodoTreeProvider } from '@/views';
 import { TodoStorageService } from '@/services';
 import { generateUUID } from '@/utils';
 import * as vscode from 'vscode';
-import { TodoDetailPanel, TodoPanel } from '../webviews';
+import { TodoDetailPanel, TodoPanel } from '@/views';
 
 export async function addTodo(extensionUri: vscode.Uri, storage: TodoStorageService, provider: TodoTreeProvider) {
 	TodoPanel.createOrShow(extensionUri, storage, provider);
 }
 
 export async function openTodo(extensionUri: vscode.Uri, todo: ITodo, storage: TodoStorageService, provider: TodoTreeProvider) {
-    TodoDetailPanel.createOrShow(extensionUri, todo, storage, provider);
+	TodoDetailPanel.createOrShow(extensionUri, todo, storage, provider);
 }
 
 export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
-    TodoPanel.createOrShow(extensionUri, storage, provider, item.todo);
+	TodoPanel.createOrShow(extensionUri, storage, provider, item.todo);
 }
 
 export async function toggleTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
@@ -45,7 +45,7 @@ export async function setDueDate(item: TodoItem, storage: TodoStorageService, pr
 	if (dateString !== undefined) {
 		const todo = item.todo;
 		let dueDate: number | undefined;
-		
+
 		if (dateString.trim()) {
 			const parsed = Date.parse(dateString);
 			if (isNaN(parsed)) {
@@ -69,7 +69,7 @@ export async function duplicateTodo(item: TodoItem, storage: TodoStorageService,
 		title: `${original.title} (Copy)`,
 		createdAt: Date.now(),
 	};
-	
+
 	await storage.addTodo(newTodo);
 	provider.refresh();
 }
@@ -88,7 +88,7 @@ export async function deleteTodo(item: TodoItem, storage: TodoStorageService, pr
 	}
 }
 
-export async function changeViewMode(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
+export async function changeViewMode(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/views').TodoGroupItem>) {
 	const modes = [
 		{ label: 'List View (All Todos)', description: 'Flat list of all todos', mode: 'list' },
 		{ label: 'Group by Priority', description: 'High, Medium, Low', mode: 'priority' },
@@ -106,31 +106,31 @@ export async function changeViewMode(provider: TodoTreeProvider, treeView: vscod
 	}
 }
 
-export async function searchTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
+export async function searchTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/views').TodoGroupItem>) {
 	const query = await vscode.window.showInputBox({
 		placeHolder: 'Search todos...',
 		prompt: 'Type to search by title or description'
 	});
 
-	if (query !== undefined) { 
+	if (query !== undefined) {
 		provider.setSearchQuery(query);
 		if (query) {
 			treeView.message = `Results for "${query}"`;
 			vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', true);
 		} else {
-			treeView.message = undefined; 
+			treeView.message = undefined;
 			vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', false);
 		}
 	}
 }
 
-export async function clearSearch(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
+export async function clearSearch(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/views').TodoGroupItem>) {
 	provider.setSearchQuery('');
-	treeView.message = undefined; 
+	treeView.message = undefined;
 	vscode.commands.executeCommand('setContext', 'personal-todo-list.isSearching', false);
 }
 
-export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/providers').TodoGroupItem>) {
+export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.TreeView<TodoItem | import('@/views').TodoGroupItem>) {
 	const options = ['Show All', 'Hide Completed', 'Show Only High Priority'];
 	const selection = await vscode.window.showQuickPick(options, {
 		placeHolder: 'Select Filter'
@@ -149,7 +149,7 @@ export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.T
 
 export async function setupProfile(extensionUri: vscode.Uri, profileService: import('@/services').UserProfileService) {
 	const existingProfile = profileService.getProfile();
-	const { ProfileSetupPanel } = await import('../webviews');
+	const { ProfileSetupPanel } = await import('@/views');
 	ProfileSetupPanel.createOrShow(extensionUri, profileService, existingProfile);
 }
 
@@ -167,6 +167,6 @@ export async function showProfileOverview(
 	profileService: import('@/services').UserProfileService,
 	todoStorage: import('@/services').TodoStorageService
 ) {
-	const { ProfileOverviewPanel } = await import('../webviews');
+	const { ProfileOverviewPanel } = await import('@/views');
 	ProfileOverviewPanel.createOrShow(extensionUri, profileService, todoStorage);
 }

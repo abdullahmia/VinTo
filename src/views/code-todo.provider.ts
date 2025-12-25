@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CodeTodoFile, CodeTodoItem } from '../models/code-todo.model';
+import { CodeTodoFile, CodeTodoItem } from '@/models/code-todo.model';
 
 const BINARY_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf', '.zip', '.tar', '.gz', '.7z',
@@ -361,4 +361,20 @@ export class CodeTodoProvider implements vscode.TreeDataProvider<CodeTodoFile | 
 
     this.todoMap = newTodoMap;
   }
+  registerWatchers(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+      vscode.workspace.onDidSaveTextDocument((doc) => {
+        this.refresh(doc.uri, true);
+      })
+    );
+
+    const scanInterval = setInterval(() => {
+      this.refresh(undefined, true);
+    }, 30 * 60 * 1000);
+
+    context.subscriptions.push({
+      dispose: () => clearInterval(scanInterval)
+    });
+  }
 }
+

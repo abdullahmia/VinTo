@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { TodoItem } from '@/providers';
-import { FocusSessionService } from '@/services/focus-session.service';
-import { TodoStorageService } from '@/services/todo-storage.service';
-import { TodoTreeProvider } from '@/providers/todo-tree-provider';
+import { TodoItem } from '@/views';
+import { FocusSessionService, TodoStorageService } from '@/services';
+import { ITodo } from '@/models';
+import { TodoTreeProvider } from '@/views';
 
 /**
  * Start a focus session for a todo item
@@ -140,7 +140,7 @@ export async function viewFocusStats(
 	focusService: FocusSessionService,
 	storage: TodoStorageService
 ): Promise<void> {
-	const { FocusStatsPanel } = await import('@/webviews/focus-stats.webview');
+	const { FocusStatsPanel } = await import('@/views/focus-stats.webview');
 	FocusStatsPanel.createOrShow(extensionUri, focusService, storage, item.todo);
 }
 
