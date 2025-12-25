@@ -21,7 +21,8 @@ export const COMMANDS = {
     START_FOCUS_SESSION: 'personal-todo-list.startFocusSession',
     STOP_FOCUS_SESSION: 'personal-todo-list.stopFocusSession',
     VIEW_FOCUS_STATS: 'personal-todo-list.viewFocusStats',
-    FOCUS_VIEW: 'personal-todo-list.focusView'
+    FOCUS_VIEW: 'personal-todo-list.focusView',
+    OPEN_SETTINGS: 'personal-todo-list.openSettings'
 } as const;
 
 export const VIEWS = {

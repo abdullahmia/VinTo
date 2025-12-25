@@ -2,112 +2,116 @@ import { TodoStorageService, UserProfileService } from '@/services';
 import * as vscode from 'vscode';
 
 export class ProfileOverviewPanel {
-	public static currentPanel: ProfileOverviewPanel | undefined;
-	private readonly _panel: vscode.WebviewPanel;
-	private readonly _extensionUri: vscode.Uri;
-	private _disposables: vscode.Disposable[] = [];
+    public static currentPanel: ProfileOverviewPanel | undefined;
+    private readonly _panel: vscode.WebviewPanel;
+    private readonly _extensionUri: vscode.Uri;
+    private _disposables: vscode.Disposable[] = [];
 
-	private constructor(
-		panel: vscode.WebviewPanel,
-		extensionUri: vscode.Uri,
-		private readonly profileService: UserProfileService,
-		private readonly todoStorage: TodoStorageService
-	) {
-		this._panel = panel;
-		this._extensionUri = extensionUri;
+    private constructor(
+        panel: vscode.WebviewPanel,
+        extensionUri: vscode.Uri,
+        private readonly profileService: UserProfileService,
+        private readonly todoStorage: TodoStorageService
+    ) {
+        this._panel = panel;
+        this._extensionUri = extensionUri;
 
-		this._update();
+        this._update();
 
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-		this._panel.webview.onDidReceiveMessage(
-			message => {
-				switch (message.command) {
-					case 'editProfile':
-						this._editProfile();
-						return;
-					case 'refresh':
-						this._update();
-						return;
-				}
-			},
-			null,
-			this._disposables
-		);
-	}
+        this._panel.webview.onDidReceiveMessage(
+            message => {
+                switch (message.command) {
+                    case 'editProfile':
+                        this._editProfile();
+                        return;
+                    case 'refresh':
+                        this._update();
+                        return;
+                }
+            },
+            null,
+            this._disposables
+        );
+    }
 
-	public static createOrShow(
-		extensionUri: vscode.Uri,
-		profileService: UserProfileService,
-		todoStorage: TodoStorageService
-	) {
-		const column = vscode.window.activeTextEditor
-			? vscode.window.activeTextEditor.viewColumn
-			: undefined;
+    public static createOrShow(
+        extensionUri: vscode.Uri,
+        profileService: UserProfileService,
+        todoStorage: TodoStorageService
+    ) {
+        const column = vscode.window.activeTextEditor
+            ? vscode.window.activeTextEditor.viewColumn
+            : undefined;
 
-		if (ProfileOverviewPanel.currentPanel) {
-			ProfileOverviewPanel.currentPanel._update();
-			ProfileOverviewPanel.currentPanel._panel.reveal(column);
-			return;
-		}
+        if (ProfileOverviewPanel.currentPanel) {
+            ProfileOverviewPanel.currentPanel._update();
+            ProfileOverviewPanel.currentPanel._panel.reveal(column);
+            return;
+        }
 
-		const panel = vscode.window.createWebviewPanel(
-			'profileOverviewWebview',
-			'Profile Overview',
-			column || vscode.ViewColumn.One,
-			{
-				enableScripts: true,
-				localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'assets')]
-			}
-		);
+        const panel = vscode.window.createWebviewPanel(
+            'profileOverviewWebview',
+            'Profile Overview',
+            column || vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'assets')]
+            }
+        );
 
-		ProfileOverviewPanel.currentPanel = new ProfileOverviewPanel(
-			panel,
-			extensionUri,
-			profileService,
-			todoStorage
-		);
-	}
+        ProfileOverviewPanel.currentPanel = new ProfileOverviewPanel(
+            panel,
+            extensionUri,
+            profileService,
+            todoStorage
+        );
+    }
 
-	public dispose() {
-		ProfileOverviewPanel.currentPanel = undefined;
+    public dispose() {
+        ProfileOverviewPanel.currentPanel = undefined;
 
-		this._panel.dispose();
+        this._panel.dispose();
 
-		while (this._disposables.length) {
-			const x = this._disposables.pop();
-			if (x) {
-				x.dispose();
-			}
-		}
-	}
+        while (this._disposables.length) {
+            const x = this._disposables.pop();
+            if (x) {
+                x.dispose();
+            }
+        }
+    }
 
-	private _editProfile() {
-		const profile = this.profileService.getProfile();
-		vscode.commands.executeCommand('personal-todo-list.setupProfile');
-	}
+    private _editProfile() {
+        const profile = this.profileService.getProfile();
+        vscode.commands.executeCommand('personal-todo-list.setupProfile');
+    }
 
-	private _update() {
-		this._panel.webview.html = this._getHtmlForWebview();
-	}
+    private _update() {
+        this._panel.webview.html = this._getHtmlForWebview();
+    }
 
-	private _getHtmlForWebview() {
-		const profile = this.profileService.getProfile();
-		const todos = this.todoStorage.getTodos();
+    private _getHtmlForWebview() {
+        const profile = this.profileService.getProfile();
+        const todos = this.todoStorage.getTodos();
 
-		// Calculate statistics
-		const total = todos.length;
-		const completed = todos.filter(t => t.isCompleted).length;
-		const pending = total - completed;
-		const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        // Calculate statistics
+        const statuses = this.todoStorage.getStatuses();
+        const total = todos.length;
+        const completed = todos.filter(t => {
+            const status = statuses.find(s => s.id === t.status);
+            return status ? status.type === 'completed' : false;
+        }).length;
+        const pending = total - completed;
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-		const highPriority = todos.filter(t => t.priority === 'high').length;
-		const mediumPriority = todos.filter(t => t.priority === 'medium').length;
-		const lowPriority = todos.filter(t => t.priority === 'low').length;
+        const highPriority = todos.filter(t => t.priority === 'high').length;
+        const mediumPriority = todos.filter(t => t.priority === 'medium').length;
+        const lowPriority = todos.filter(t => t.priority === 'low').length;
 
-		const nonce = this._getNonce();
+        const nonce = this._getNonce();
 
-		return `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -454,14 +458,14 @@ export class ProfileOverviewPanel {
     </script>
 </body>
 </html>`;
-	}
+    }
 
-	private _getNonce() {
-		let text = '';
-		const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-		for (let i = 0; i < 32; i++) {
-			text += possible.charAt(Math.floor(Math.random() * possible.length));
-		}
-		return text;
-	}
+    private _getNonce() {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
 }

@@ -97,6 +97,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(COMMANDS.SHOW_PROFILE_OVERVIEW, () => {
             commands.showProfileOverview(context.extensionUri, profileService, storage);
         }),
+        vscode.commands.registerCommand(COMMANDS.OPEN_SETTINGS, () => {
+            commands.openSettings(context.extensionUri, profileService, storage);
+        }),
         vscode.commands.registerCommand(COMMANDS.REFRESH_CODE_TODOS, () => {
             codeTodoProvider.refresh();
         }),
@@ -118,8 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Check for first-time setup
-    if (!profileService.hasProfile()) {
+    // Check for first-time setup or upgrade
+    if (!profileService.hasCompletedOnboarding(1)) {
         setTimeout(() => {
             commands.setupProfile(context.extensionUri, profileService);
         }, 500);

@@ -19,9 +19,24 @@ export async function editTodo(extensionUri: vscode.Uri, item: TodoItem, storage
 
 export async function toggleTodo(item: TodoItem, storage: TodoStorageService, provider: TodoTreeProvider) {
 	const todo = item.todo;
+	const statuses = storage.getStatuses();
+	const currentStatus = statuses.find(s => s.id === todo.status);
+
+	let targetStatusId = todo.status;
+
+	if (currentStatus?.type === 'completed') {
+		// Switch to default active
+		const defaultActive = statuses.find(s => s.type === 'active' && s.isDefault) || statuses.find(s => s.type === 'active');
+		if (defaultActive) targetStatusId = defaultActive.id;
+	} else {
+		// Switch to default completed
+		const defaultCompleted = statuses.find(s => s.type === 'completed' && s.isDefault) || statuses.find(s => s.type === 'completed');
+		if (defaultCompleted) targetStatusId = defaultCompleted.id;
+	}
+
 	const updatedTodo: ITodo = {
 		...todo,
-		isCompleted: !todo.isCompleted
+		status: targetStatusId
 	};
 	await storage.updateTodo(updatedTodo);
 	provider.refresh();
@@ -149,8 +164,8 @@ export async function filterTodos(provider: TodoTreeProvider, treeView: vscode.T
 
 export async function setupProfile(extensionUri: vscode.Uri, profileService: import('@/services').UserProfileService) {
 	const existingProfile = profileService.getProfile();
-	const { ProfileSetupPanel } = await import('@/views');
-	ProfileSetupPanel.createOrShow(extensionUri, profileService, existingProfile);
+	const { UserOnboarding } = await import('@/views');
+	UserOnboarding.createOrShow(extensionUri, profileService, existingProfile);
 }
 
 export async function viewProfile(
@@ -169,4 +184,13 @@ export async function showProfileOverview(
 ) {
 	const { ProfileOverviewPanel } = await import('@/views');
 	ProfileOverviewPanel.createOrShow(extensionUri, profileService, todoStorage);
+}
+
+export async function openSettings(
+	extensionUri: vscode.Uri,
+	profileService: import('@/services').UserProfileService,
+	storage: import('@/services').TodoStorageService
+) {
+	const { SettingsPanel } = await import('@/views');
+	SettingsPanel.createOrShow(extensionUri, profileService, storage);
 }

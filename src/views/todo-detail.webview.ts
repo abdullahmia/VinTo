@@ -98,9 +98,24 @@ export class TodoDetailPanel {
     }
 
     private async _toggleTodo() {
+        const statuses = this.storage.getStatuses();
+        const currentStatus = statuses.find(s => s.id === this._todo.status);
+
+        let targetStatusId = this._todo.status;
+
+        if (currentStatus?.type === 'completed') {
+            // Switch to default active
+            const defaultActive = statuses.find(s => s.type === 'active' && s.isDefault) || statuses.find(s => s.type === 'active');
+            if (defaultActive) targetStatusId = defaultActive.id;
+        } else {
+            // Switch to default completed
+            const defaultCompleted = statuses.find(s => s.type === 'completed' && s.isDefault) || statuses.find(s => s.type === 'completed');
+            if (defaultCompleted) targetStatusId = defaultCompleted.id;
+        }
+
         const updatedTodo = {
             ...this._todo,
-            isCompleted: !this._todo.isCompleted
+            status: targetStatusId
         };
         await this.storage.updateTodo(updatedTodo);
         this._todo = updatedTodo;
@@ -126,6 +141,11 @@ export class TodoDetailPanel {
                 return `<!DOCTYPE html><html><body><h1>Error: No Todo Data</h1></body></html>`;
             }
 
+            const statuses = this.storage.getStatuses();
+            const currentStatus = statuses.find(s => s.id === t.status);
+            const isCompleted = currentStatus?.type === 'completed';
+            const statusLabel = currentStatus ? currentStatus.label : 'Unknown';
+
             // Format Dates
             const createdStr = new Date(t.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
             const dueStr = t.dueDate
@@ -148,9 +168,9 @@ export class TodoDetailPanel {
                     '</div>';
             }
 
-            const statusText = t.isCompleted ? 'Completed' : 'Pending';
-            const statusClass = t.isCompleted ? 'status-completed' : 'status-pending';
-            const toggleBtnText = t.isCompleted ? 'Mark as Incomplete' : 'Mark as Complete';
+            const statusText = statusLabel;
+            const statusClass = isCompleted ? 'status-completed' : 'status-pending';
+            const toggleBtnText = isCompleted ? 'Mark as Incomplete' : 'Mark as Complete';
 
             const nonce = this._getNonce();
 

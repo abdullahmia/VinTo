@@ -8,7 +8,7 @@ export interface ITodo {
 	id: string;
 	title: string;
 	description?: string;
-	isCompleted: boolean;
+	status: string; // Corresponds to ITodoStatus.id
 	priority: TodoPriority;
 	createdAt: number;
 	dueDate?: number;

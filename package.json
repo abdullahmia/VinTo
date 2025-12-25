@@ -198,6 +198,11 @@
         "command": "personal-todo-list.viewFocusStats",
         "title": "View Focus Statistics",
         "icon": "$(graph)"
+      },
+      {
+        "command": "personal-todo-list.openSettings",
+        "title": "Settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -231,6 +236,11 @@
           "command": "personal-todo-list.refreshCodeTodos",
           "when": "view == personal-todo-list.codeTodoView",
           "group": "navigation@1"
+        },
+        {
+          "command": "personal-todo-list.openSettings",
+          "when": "view == personal-todo-list.todoView",
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
