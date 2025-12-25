@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.5.0
+
+### Minor Changes
+
+- Introduced a dual-mode Rich Text and Markdown editor for Todo descriptions. Users can now toggle between a WYSIWYG editor (Quill) and an inline Markdown editor (Tiptap) with real-time rendering.
+
 ## 1.4.5
 
 ### Patch Changes
